@@ -5,3 +5,4 @@ targetConfigs/
 .cproject
 .project
 lnk_msp430f5438a.cmd
+.metadata/
