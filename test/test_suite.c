@@ -13,7 +13,14 @@
  * A simple test blinking the LED multiple times.
  */
 static void Blinky() {
-	/// @todo Implement.
+	unsigned int i;
+
+	P1DIR |= BIT0;
+
+	for (i = 0; i < 65535; i++) {
+		P1OUT ^= BIT0;
+		Delay(DELAY_100);
+	}
 }
 
 /**
