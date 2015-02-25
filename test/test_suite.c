@@ -86,5 +86,45 @@ static void Delay(int time) {
  * @param[in] numOfTests The number of tests to be run.
  */
 extern void ExecuteTests(UnitTest tests[], int numOfTests) {
+	int i;
 
+	for (i = 0; i < numOfTests; i++) {
+		if (tests[i].PreDelay > 0) {
+			Delay(tests[i].PreDelay);
+		}
+
+		switch(tests[i].Test) {
+			case BLINKY:
+
+				break;
+			case RS232_PC:
+
+				break;
+			case ADC:
+
+				break;
+			case CAN_MPPT_ON:
+
+				break;
+			case CAN_MPPT_OFF:
+
+				break;
+			case CAN_MPPT_DATA:
+
+				break;
+			case CAN_CAR_READ:
+
+				break;
+			case CAN_CAR_WRITE:
+
+				break;
+			default:
+				printf("Unknown test with ID: %X", tests[i].Test);
+				break;
+		}
+
+		if (tests[i].PostDelay > 0) {
+			Delay(tests[i].PostDelay);
+		}
+	}
 }
