@@ -9,9 +9,9 @@
  * indicates what test will be performed, and PostDelay performs a delay after the test.
  */
 typedef struct {
-	char PreDelay;
+	unsigned int PreDelay;
 	unsigned int Test;
-	char PostDelay;
+	unsigned int PostDelay;
 } UnitTest;
 
 /**
@@ -32,6 +32,7 @@ extern void ExecuteTests(UnitTest tests[], int numOfTests);
 #define DELAY_100 1600
 #define DELAY_500 8000
 #define DELAY_1000 16000
+#define DELAY_FOREVER 65535 // Run test forever.
 /**@}*/
 
 /**

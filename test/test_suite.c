@@ -85,6 +85,8 @@ static void Delay(char delayConstant) {
 		case DELAY_1000:
 			__delay_cycles(DELAY_1000);
 			break;
+		case DELAY_FOREVER: // If DELAY_FOREVER is passed in, don't do anything!
+			break;
 		default: // If an unknown value is given, then don't perform the delay.
 			printf("Unknown delay constant: %d", delayConstant);
 			break;
@@ -98,7 +100,7 @@ static void Delay(char delayConstant) {
  * @param[in] numOfTests The number of tests to be run.
  */
 extern void ExecuteTests(UnitTest tests[], int numOfTests) {
-	int i;
+	signed int i;
 
 	for (i = 0; i < numOfTests; i++) {
 		if (tests[i].PreDelay > DELAY_0) {
@@ -135,7 +137,9 @@ extern void ExecuteTests(UnitTest tests[], int numOfTests) {
 				break;
 		}
 
-		if (tests[i].PostDelay > DELAY_0) {
+		if (tests[i].PostDelay == DELAY_FOREVER) {
+			i--;
+		} else if (tests[i].PostDelay > DELAY_0) {
 			Delay(tests[i].PostDelay);
 		}
 	}
