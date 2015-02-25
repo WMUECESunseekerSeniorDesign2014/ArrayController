@@ -25,9 +25,9 @@ extern void ExecuteTests(UnitTest tests[], int numOfTests);
  * indicates what test will be performed, and PostDelay performs a delay after the test.
  */
 typedef struct {
-	int PreDelay;
-	int Test;
-	int PostDelay;
+	unsigned int PreDelay;
+	unsigned int Test;
+	unsigned int PostDelay;
 } UnitTest;
 
 #ifndef TEST_SUITE_H_
