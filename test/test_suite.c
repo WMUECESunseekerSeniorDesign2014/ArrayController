@@ -20,14 +20,14 @@ static void Blinky() {
  * Read and write to the PC using the RS-232 controller on the
  * Array Controller.
  */
-static void RS232_PC() {
+static void Rs232_PC() {
 	/// @todo Implement.
 }
 
 /**
  * Read values from the ADC and print them to the console.
  */
-static void ADC() {
+static void Adc() {
 	/// @todo Implement.
 }
 
@@ -67,16 +67,28 @@ static void CAN_Car_Write() {
 }
 
 /**
- * A wrapper for __delay_cycles() which allows the developer to create a delay
+ * A wrapper for __delay_cycles() which allows the developer to create a **synchronous** delay
  * of a number in microseconds.
  *
  * @note This should not be used in conjunction with functions that rely on ISRs!
- * @note This function will support a max delay of 65535 microseconds.
  *
- * @param[in] time The duration of the delay in microseconds.
+ * @param[in] delayConstant One of the constants defined in Delay Timings.
  */
-static void Delay(unsigned int time) {
-	__delay_cycles((time * 1000) / CYCLE_TIME);
+static void Delay(char delayConstant) {
+	switch(delayConstant) {
+		case DELAY_100:
+			__delay_cycles(DELAY_100);
+			break;
+		case DELAY_500:
+			__delay_cycles(DELAY_500);
+			break;
+		case DELAY_1000:
+			__delay_cycles(DELAY_1000);
+			break;
+		default: // If an unknown value is given, then don't perform the delay.
+			printf("Unknown delay constant: %d", delayConstant);
+			break;
+	}
 }
 
 /**
@@ -89,7 +101,7 @@ extern void ExecuteTests(UnitTest tests[], int numOfTests) {
 	int i;
 
 	for (i = 0; i < numOfTests; i++) {
-		if (tests[i].PreDelay > 0) {
+		if (tests[i].PreDelay > DELAY_0) {
 			Delay(tests[i].PreDelay);
 		}
 
@@ -98,10 +110,10 @@ extern void ExecuteTests(UnitTest tests[], int numOfTests) {
 				Blinky();
 				break;
 			case RS232_PC:
-				RS232_PC();
+				Rs232_PC();
 				break;
 			case ADC:
-				ADC();
+				Adc();
 				break;
 			case CAN_MPPT_ON:
 				CAN_MPPT_Enable();
@@ -123,7 +135,7 @@ extern void ExecuteTests(UnitTest tests[], int numOfTests) {
 				break;
 		}
 
-		if (tests[i].PostDelay > 0) {
+		if (tests[i].PostDelay > DELAY_0) {
 			Delay(tests[i].PostDelay);
 		}
 	}
