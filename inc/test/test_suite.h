@@ -19,23 +19,20 @@ typedef struct {
  */
 extern void ExecuteTests(UnitTest tests[], int numOfTests);
 
-/**
- * @struct UnitTest
- * A struct for running tests. PreDelay performs a delay before the test, test
- * indicates what test will be performed, and PostDelay performs a delay after the test.
- */
-typedef struct {
-	unsigned int PreDelay;
-	unsigned int Test;
-	unsigned int PostDelay;
-} UnitTest;
-
 #ifndef TEST_SUITE_H_
 #define TEST_SUITE_H_
 
 #define CYCLE_TIME 63 // Rounded up from 62.5.
 
+/**
+ * @defgroup delayDefines Delay Timings
+ * @{
+ */
 #define DELAY_0 0
+#define DELAY_100 1600
+#define DELAY_500 8000
+#define DELAY_1000 16000
+/**@}*/
 
 /**
  * @defgroup delayDefines Delay Timings
