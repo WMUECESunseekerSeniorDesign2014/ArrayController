@@ -10,6 +10,33 @@
 #include "../inc/test/test_suite.h"
 
 /**
+ * A wrapper for __delay_cycles() which allows the developer to create a **synchronous** delay
+ * of a number in microseconds.
+ *
+ * @note This should not be used in conjunction with functions that rely on ISRs!
+ *
+ * @param[in] delayConstant One of the constants defined in Delay Timings.
+ */
+static void Delay(unsigned int delayConstant) {
+	switch(delayConstant) {
+		case DELAY_100:
+			__delay_cycles(DELAY_100);
+			break;
+		case DELAY_500:
+			__delay_cycles(DELAY_500);
+			break;
+		case DELAY_1000:
+			__delay_cycles(DELAY_1000);
+			break;
+		case DELAY_FOREVER: // If DELAY_FOREVER is passed in, don't do anything!
+			break;
+		default: // If an unknown value is given, then don't perform the delay.
+			printf("Unknown delay constant: %d", delayConstant);
+			break;
+	}
+}
+
+/**
  * A simple test blinking the LED multiple times.
  */
 static void Blinky() {
@@ -71,33 +98,6 @@ static void CAN_Car_Read() {
  */
 static void CAN_Car_Write() {
 	/// @todo Implement.
-}
-
-/**
- * A wrapper for __delay_cycles() which allows the developer to create a **synchronous** delay
- * of a number in microseconds.
- *
- * @note This should not be used in conjunction with functions that rely on ISRs!
- *
- * @param[in] delayConstant One of the constants defined in Delay Timings.
- */
-static void Delay(char delayConstant) {
-	switch(delayConstant) {
-		case DELAY_100:
-			__delay_cycles(DELAY_100);
-			break;
-		case DELAY_500:
-			__delay_cycles(DELAY_500);
-			break;
-		case DELAY_1000:
-			__delay_cycles(DELAY_1000);
-			break;
-		case DELAY_FOREVER: // If DELAY_FOREVER is passed in, don't do anything!
-			break;
-		default: // If an unknown value is given, then don't perform the delay.
-			printf("Unknown delay constant: %d", delayConstant);
-			break;
-	}
 }
 
 /**

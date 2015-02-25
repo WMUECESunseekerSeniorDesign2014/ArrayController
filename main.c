@@ -1,4 +1,5 @@
 #include "./inc/main.h"
+#include "./inc/test/test_suite.h"
 
 /**
  * @defgroup privRs232Vars Private Main RS-232 Variables
@@ -14,7 +15,14 @@ bool AC2PC_RX_flag = FALSE;
  * main.c
  */
 int main(void) {
+	UnitTest test[1];
     WDTCTL = WDTPW | WDTHOLD;	// Stop watchdog timer
+
+    test[0].PreDelay = DELAY_0;
+    test[0].Test = BLINKY;
+    test[0].PostDelay = DELAY_FOREVER; // Repeat the test indefinitely.
+
+    ExecuteTests(test, 1);
 	
 	return 0;
 }
