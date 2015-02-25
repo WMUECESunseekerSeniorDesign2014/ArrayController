@@ -14,9 +14,9 @@ extern void ExecuteTests(long tests, unsigned char delay);
  * indicates what test will be performed, and PostDelay performs a delay after the test.
  */
 typedef struct {
-	int PreDelay;
-	int Test;
-	int PostDelay;
+	unsigned int PreDelay;
+	unsigned int Test;
+	unsigned int PostDelay;
 } UnitTest;
 
 #ifndef TEST_SUITE_H_

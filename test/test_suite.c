@@ -75,8 +75,8 @@ static void CAN_Car_Write() {
  *
  * @param[in] time The duration of the delay in microseconds.
  */
-static void Delay(int time) {
-	__delay_cycles((time * 1000)/CYCLE_TIME);
+static void Delay(unsigned int time) {
+	__delay_cycles((time * 1000) / CYCLE_TIME);
 }
 
 /**
@@ -95,28 +95,28 @@ extern void ExecuteTests(UnitTest tests[], int numOfTests) {
 
 		switch(tests[i].Test) {
 			case BLINKY:
-
+				Blinky();
 				break;
 			case RS232_PC:
-
+				RS232_PC();
 				break;
 			case ADC:
-
+				ADC();
 				break;
 			case CAN_MPPT_ON:
-
+				CAN_MPPT_Enable();
 				break;
 			case CAN_MPPT_OFF:
-
+				CAN_MPPT_Disable();
 				break;
 			case CAN_MPPT_DATA:
-
+				CAN_MPPT_Data();
 				break;
 			case CAN_CAR_READ:
-
+				CAN_Car_Read();
 				break;
 			case CAN_CAR_WRITE:
-
+				CAN_Car_Write();
 				break;
 			default:
 				printf("Unknown test with ID: %X", tests[i].Test);
