@@ -35,6 +35,8 @@ typedef struct {
 
 #define CYCLE_TIME 63 // Rounded up from 62.5.
 
+#define DELAY_0 0
+
 /**
  * @defgroup delayDefines Delay Timings
  * @{
