@@ -41,12 +41,16 @@ static void Delay(unsigned int delayConstant) {
  */
 static void Blinky() {
 	unsigned int i;
+	unsigned int compareVal = 65535;
 
 	P1DIR |= BIT0;
+	P2DIR |= BIT0;
+	P4DIR |= BIT0 | BIT1 | BIT2 | BIT3;
 
-	for (i = 0; i < 65535; i++) {
+	for (i = 0; i < compareVal; i++) {
 		P1OUT ^= BIT0;
-		Delay(DELAY_100);
+		P2OUT ^= BIT0;
+		P4OUT ^= BIT0 | BIT1 | BIT2 | BIT3
 	}
 }
 
