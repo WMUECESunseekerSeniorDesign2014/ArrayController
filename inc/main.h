@@ -31,10 +31,10 @@ typedef enum { TRUE, FALSE } bool;
 #define P1_UNUSED			0x40 | 0x80
 
 // Port 2
-#define ADC4_RDYn			0x01
-#define ADC3_RDYn			0x02
-#define ADC2_RDYn			0x04
-#define ADC1_RDYn			0x08
+#define ADC_CSn				0x01
+#define ADC_RESETn			0x02
+#define ADC_RDYn			0x04
+#define DRIVER_SW1			0x08 // I stopped here.
 #define INT_CTS				0x10 // Input from other BPS
 #define INT_RTS				0x20 // Output to other BPS
 #define P26					0x40
