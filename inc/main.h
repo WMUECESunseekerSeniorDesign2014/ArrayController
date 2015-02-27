@@ -17,29 +17,39 @@ typedef enum { TRUE, FALSE } bool;
 #include "./rs232.h"
 
 /**
- * Pin Definitions
+ * @note The pins are in the following order: 0, 1, 2, 3, 4, 5, 6, 7, unused pins.
+ * @defgroup pindefs Pin Definitions
+ * @{
  */
-// Port 1
-#define LED0		      	0x01 // 0
-#define LED1			    0x02 // 1
-#define BUTTON2				0x04 // 2
-#define BUTTON1 			0x08 // 3
-#define CAN_INTn0			0x10 // 4
-#define CAN_INTn1	      	0x20 // 5
-#define P16					0x40 // 6
-#define P17					0x80 // 7
+/**
+ * @defgroup port1 Port One Pin Definitions
+ * @{
+ */
+#define LED0		      	0x01 /** LED0: Output */
+#define LED1			    0x02 /** LED1: Output */
+#define BUTTON2				0x04 /** BUTTON2: Input */
+#define BUTTON1 			0x08 /** BUTTON1: Input */
+#define CAN_INTn0			0x10 /** CAN_INTn0: Input */
+#define CAN_INTn1	      	0x20 /** CAN_INTn1: Input */
+#define P16					0x40 /** P16: N/A */
+#define P17					0x80 /** P17: N/A */
 #define P1_UNUSED			0x40 | 0x80
+/**@}*/
 
-// Port 2
-#define ADC_CSn				0x01
-#define ADC_RESETn			0x02
-#define ADC_RDYn			0x04
-#define DRIVER_SW1			0x08 // I stopped here.
-#define INT_CTS				0x10 // Input from other BPS
-#define INT_RTS				0x20 // Output to other BPS
-#define P26					0x40
-#define P27					0x80
+/**
+ * @defgroup port2 Port Two Pin Definitions
+ * @{
+ */
+#define ADC_CSn				0x01 /** ADC_CSn: Output */
+#define ADC_RESETn			0x02 /** ADC_RESETn: Output */
+#define ADC_RDYn			0x04 /** ADC_RDYn: Input */
+#define DRIVER_SW1			0x08 /** DRIVER_SW1: Input */
+#define DRIVER_SW2			0x10 /** DRIVER_SW2: Input */
+#define DRIVER_SW3			0x20 /** DRIVER_SW3: Input */
+#define P26					0x40 /** P26: N/A */
+#define P27					0x80 /** P27: N/A */
 #define P2_UNUSED			0x80 | 0x40
+/**@}*/
 
 // Port 3
 #define P30					0x01
@@ -139,5 +149,7 @@ typedef enum { TRUE, FALSE } bool;
 #define JTAG_TDI			0x02
 #define JTAG_TMS			0x04
 #define JTAG_TCK			0x08
+
+/**@}*/
 
 #endif /* MAIN_H_ */
