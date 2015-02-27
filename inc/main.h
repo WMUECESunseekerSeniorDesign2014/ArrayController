@@ -20,15 +20,15 @@ typedef enum { TRUE, FALSE } bool;
  * Pin Definitions
  */
 // Port 1
-#define LED0		      	0x01
-#define LED1			    0x02
-#define BUTTON1				0x04
-#define BUTTON2 			0x08
-#define CAN_INTn			0x10
-#define CAN_RX0n	      	0x20
-#define CAN_RX1n			0x40
-#define P17					0x80
-#define P1_UNUSED			0x80
+#define LED0		      	0x01 // 0
+#define LED1			    0x02 // 1
+#define BUTTON2				0x04 // 2
+#define BUTTON1 			0x08 // 3
+#define CAN_INTn0			0x10 // 4
+#define CAN_INTn1	      	0x20 // 5
+#define P16					0x40 // 6
+#define P17					0x80 // 7
+#define P1_UNUSED			0x40 | 0x80
 
 // Port 2
 #define ADC4_RDYn			0x01
