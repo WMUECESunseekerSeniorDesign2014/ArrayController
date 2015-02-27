@@ -1,8 +1,4 @@
-.settings/
 Debug/
 targetConfigs/
-.ccsproject
-.cproject
-.project
 lnk_msp430f5438a.cmd
 .metadata/
