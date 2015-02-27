@@ -33,8 +33,8 @@ void timerA_init( void );
 /**@}*/
 
 
-#include "./adc.h"
-#include "./rs232.h"
+//#include "./adc.h" // removed until we get header file.
+//#include "./rs232.h"
 
 /**
  * @note The pins are in the following order: 0, 1, 2, 3, 4, 5, 6, 7, unused pins.
