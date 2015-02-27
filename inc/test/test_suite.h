@@ -22,8 +22,6 @@ extern void ExecuteTests(UnitTest tests[], int numOfTests);
 #ifndef TEST_SUITE_H_
 #define TEST_SUITE_H_
 
-#define CYCLE_TIME 63 // Rounded up from 62.5.
-
 /**
  * @defgroup delayDefines Delay Timings
  * @{
