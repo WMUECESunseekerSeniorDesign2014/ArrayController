@@ -66,16 +66,20 @@ typedef enum { TRUE, FALSE } bool;
 #define P3_UNUSED			0x01 | 0x80
 /**@}*/
 
-// Port 4
-#define ADC4_CSn			0x01
-#define ADC3_CSn			0x02
-#define ADC2_CSn			0x04
-#define ADC1_CSn			0x08
-#define ADC_RSTn			0x10
-#define P45					0x20
-#define P46					0x40
-#define P47					0x80
-#define P4_UNUSED			0x20 | 0x40 | 0x80
+/**
+ * @defgroup port4 Port Four Pin Definitions
+ * @{
+ */
+#define LED2				0x01 /** LED2: Output */
+#define LED3				0x02 /** LED3: Output */
+#define LED4				0x04 /** LED4: Output */
+#define LED5				0x08 /** LED5: Output */
+#define P44					0x10 /** P44: N/A */
+#define P45					0x20 /** P45: N/A */
+#define CAN					0x40
+#define CAN					0x80
+#define P4_UNUSED			0x10 | 0x20
+/**@}*/
 
 // Port 5
 #define P50					0x01
