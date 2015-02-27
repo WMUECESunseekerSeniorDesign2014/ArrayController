@@ -51,16 +51,20 @@ typedef enum { TRUE, FALSE } bool;
 #define P2_UNUSED			0x80 | 0x40
 /**@}*/
 
-// Port 3
-#define P30					0x01
-#define ADC4_SIMO			0x02
-#define ADC4_SOMI			0x04
-#define ADC4_CLK			0x08
-#define INT_TX				0x10
-#define INT_RX				0x20
-#define ADC1_CLK			0x40
-#define P37					0x80
+/**
+ * @defgroup port3 Port Three Pin Definitions
+ * @{
+ */
+#define P30					0x01 /** P30: N/A */
+#define ADC_DIN				0x02 /** ADC_DIN: Output */
+#define ADC_DOUT			0x04 /** ADC_DOUT: Input */
+#define ADC_SCLK			0x08 /** ADC_SCLK: Output */
+#define TX_EXT				0x10 /** TX_EXT: Output */
+#define RX_EXT				0x20 /** RX_EXT: Input */
+#define CANSCLK2			0x40 /** CANSCLK2: Output */
+#define P37					0x80 /** P37: N/A */
 #define P3_UNUSED			0x01 | 0x80
+/**@}*/
 
 // Port 4
 #define ADC4_CSn			0x01
