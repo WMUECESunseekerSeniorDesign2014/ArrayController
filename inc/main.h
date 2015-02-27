@@ -76,21 +76,26 @@ typedef enum { TRUE, FALSE } bool;
 #define LED5				0x08 /** LED5: Output */
 #define P44					0x10 /** P44: N/A */
 #define P45					0x20 /** P45: N/A */
-#define CAN					0x40
-#define CAN					0x80
+#define CANRX1n2			0x40 /** CANRX1n2: Input */
+#define CANRX2n2			0x80 /** CANRX1n2: Input */
 #define P4_UNUSED			0x10 | 0x20
 /**@}*/
 
-// Port 5
-#define P50					0x01
-#define P51					0x02
-#define XT2IN				0x04
-#define XT2OUT				0x08
-#define P54					0x10
-#define P55					0x20
-#define ADC1_SIMO			0x40
-#define ADC1_SOMI			0x80
-#define P5_UNUSED			0x01 | 0x02 | 0x10 | 0x20
+/**
+ * @defgroup port5 Port Five Pin Definitions
+ * @{
+ */
+#define P50					0x01 /** P50: N/A */
+#define P51					0x02 /** P51: N/A */
+#define XT2IN				0x04 /** XT2IN: Input */
+#define XT2OUT				0x08 /** XT2OUT: Output */
+#define CANRSTn2			0x10 /** CANRSTn2: Output */
+								 /** @todo Find out if this is request-to-send. */
+#define CANCSn2				0x20 /** CANCSn2: Output */
+#define CANSI2				0x40 /** CANSI2: Output */
+#define CANSO2				0x80 /** CANSO2: Input */
+#define P5_UNUSED			0x01 | 0x02
+/**@}*/
 
 // Port 6
 #define S0					0x01
