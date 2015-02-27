@@ -111,9 +111,9 @@ static void CAN_Car_Write() {
  * @param[in] numOfTests The number of tests to be run.
  */
 extern void ExecuteTests(UnitTest tests[], int numOfTests) {
-	signed int i;
+	unsigned int i = 0;
 
-	for (i = 0; i < numOfTests; i++) {
+	while(i < numOfTests) {
 		if (tests[i].PreDelay > DELAY_0) {
 			Delay(tests[i].PreDelay);
 		}
@@ -148,8 +148,8 @@ extern void ExecuteTests(UnitTest tests[], int numOfTests) {
 				break;
 		}
 
-		if (tests[i].PostDelay == DELAY_FOREVER) {
-			i--;
+		if (tests[i].PostDelay != DELAY_FOREVER) {
+			i++;
 		} else if (tests[i].PostDelay > DELAY_0) {
 			Delay(tests[i].PostDelay);
 		}
