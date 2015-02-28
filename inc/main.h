@@ -77,7 +77,7 @@ extern void Delay(unsigned int delayConstant);
 #define ADC_SCLK			0x08 /** ADC_SCLK: Output */
 #define TX_EXT				0x10 /** TX_EXT: Output */
 #define RX_EXT				0x20 /** RX_EXT: Input */
-#define CANSCLK2			0x40 /** CANSCLK2: Output */
+#define CAN_SCLK2			0x40 /** CANSCLK2: Output */
 #define P37					0x80 /** P37: N/A */
 #define P3_UNUSED			0x01 | 0x80
 /**@}*/
@@ -92,8 +92,8 @@ extern void Delay(unsigned int delayConstant);
 #define LED5				0x08 /** LED5: Output */
 #define P44					0x10 /** P44: N/A */
 #define P45					0x20 /** P45: N/A */
-#define CANRX1n2			0x40 /** CANRX1n2: Input */
-#define CANRX2n2			0x80 /** CANRX1n2: Input */
+#define CAN_RX1n2			0x40 /** CANRX1n2: Input - Poll the input for interrupt */
+#define CAN_RX2n2			0x80 /** CANRX2n2: Input - Poll the input for interrupt */
 #define P4_UNUSED			0x10 | 0x20
 /**@}*/
 
@@ -105,11 +105,10 @@ extern void Delay(unsigned int delayConstant);
 #define P51					0x02 /** P51: N/A */
 #define XT2IN				0x04 /** XT2IN: Input */
 #define XT2OUT				0x08 /** XT2OUT: Output */
-#define CANRSTn2			0x10 /** CANRSTn2: Output */
-								 /** @todo Find out if this is request-to-send. */
-#define CANCSn2				0x20 /** CANCSn2: Output */
-#define CANSI2				0x40 /** CANSI2: Output */
-#define CANSO2				0x80 /** CANSO2: Input */
+#define CAN_RSTn2			0x10 /** CANRSTn2 (RESET): Output */
+#define CAN_CSn2				0x20 /** CANCSn2: Output */
+#define CAN_SI2				0x40 /** CANSI2: Output */
+#define CAN_SO2				0x80 /** CANSO2: Input */
 #define P5_UNUSED			0x01 | 0x02
 /**@}*/
 
