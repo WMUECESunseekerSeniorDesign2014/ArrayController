@@ -23,17 +23,6 @@ extern void ExecuteTests(UnitTest tests[], int numOfTests);
 #define TEST_SUITE_H_
 
 /**
- * @defgroup delayDefines Delay Timings
- * @{
- */
-#define DELAY_0 0
-#define DELAY_100 1600
-#define DELAY_500 8000
-#define DELAY_1000 16000
-#define DELAY_FOREVER 65535 // Run test forever.
-/**@}*/
-
-/**
  * @defgroup testDefines Test Defines
  * @{
  */
