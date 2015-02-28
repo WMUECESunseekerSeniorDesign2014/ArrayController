@@ -106,7 +106,7 @@ extern void Delay(unsigned int delayConstant);
 #define XT2IN				0x04 /** XT2IN: Input */
 #define XT2OUT				0x08 /** XT2OUT: Output */
 #define CAN_RSTn2			0x10 /** CANRSTn2 (RESET): Output */
-#define CAN_CSn2				0x20 /** CANCSn2: Output */
+#define CAN_CSn2			0x20 /** CANCSn2: Output */
 #define CAN_SI2				0x40 /** CANSI2: Output */
 #define CAN_SO2				0x80 /** CANSO2: Input */
 #define P5_UNUSED			0x01 | 0x02
