@@ -9,12 +9,13 @@
  */
 
 #include "./inc/main.h"
+#include "./inc/adc.h"
 
 /*================================== ADC Functions ======================================*/
 
 void adc_reset()    //reset the ADC
 {
-  // Sowtware Reset
+  // Software Reset
   adc_select;
   adc_spi_transmit(0x00);
   adc_spi_transmit(0xFF);
@@ -137,7 +138,7 @@ char adc_zselfcal(char adc_channel)	//Per channel zero self-calibration (interna
   while (i != 0);
 
   //Wait for the conversion to be done
-  while ( (P2IN & ADC4_RDYn) == ADC4_RDYn);
+  while ( (P2IN & ADC_RDYn) == ADC_RDYn);
   status_adc=adc_status();
   return(status_adc);
 }
@@ -158,7 +159,7 @@ char adc_fselfcal(char adc_channel)	//Per channel zero self-calibration (interna
   while (i != 0);
 
   //Wait for the conversion to be done
-  while ( (P2IN & ADC4_RDYn) == ADC4_RDYn);
+  while ( (P2IN & ADC_RDYn) == ADC_RDYn);
   status_adc=adc_status();
   return(status_adc);
 }
@@ -180,7 +181,7 @@ signed long adc_in(char adc_channel)	// read voltage from Channel adc_channel (0
   while (i != 0);
 
   //Wait for the conversion to be done
-  while ( (P2IN & ADC4_RDYn) == ADC4_RDYn);
+  while ( (P2IN & ADC_RDYn) == ADC_RDYn);
 
   //Read the ADC Data
   adc_select;
@@ -216,7 +217,7 @@ signed long adc_indump(char adc_channel)	// read voltage from Channel adc_channe
   while (i != 0);
 
   //Wait for the conversion to be done
-  while ( (P2IN & ADC4_RDYn) == ADC4_RDYn);
+  while ( (P2IN & ADC_RDYn) == ADC_RDYn);
 
   //Read the ADC Data
   adc_select;
@@ -261,7 +262,7 @@ void adc_convert(void)	// read voltage from multiple channels - continuous conve
   while (i != 0);
 
   //Wait for the conversion to be done
-  while ( (P2IN & ADC4_RDYn) == ADC4_RDYn);
+  while ( (P2IN & ADC_RDYn) == ADC_RDYn);
 
   //Set the channel MODE to idle
   adc_select;

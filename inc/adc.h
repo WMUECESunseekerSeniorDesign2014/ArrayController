@@ -43,8 +43,8 @@ extern char adc_temp_check(void);
 extern char adc_remote_temp_check(void);
 
 // SPI port interface macros
-#define adc_select		P4OUT &= ~ADC4_CSn; //Set CS low		HAVE TO FIGURE OUT PIN LAYOUT TO SEE WHAT PIN THE CS IS
-#define adc_deselect	P4OUT |= ADC4_CSn;	//Set CS high
+#define adc_select		P2OUT &= ~ADC_CSn; //Set CS low
+#define adc_deselect	P2OUT |= ADC_CSn;	//Set CS high
 
 // variables
 /* FWRATE Settings (1.5x the following):
