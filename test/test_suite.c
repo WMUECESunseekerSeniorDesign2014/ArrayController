@@ -16,12 +16,12 @@ static void Blinky() {
 	unsigned int i;
 	unsigned int compareVal = 65535;
 
-	P1DIR |= BIT0 | BIT1;
-	P4DIR |= BIT0 | BIT1 | BIT2 | BIT3;
+	P1DIR |= LED0 | LED1;
+	P4DIR |= LED2 | LED3 | LED4 | LED5;
 
 	for (i = 0; i < compareVal; i++) {
-		P1OUT ^= BIT0 | BIT1;
-		P4OUT ^= BIT0 | BIT1 | BIT2 | BIT3;
+		P1OUT ^= LED0 | LED1;
+		P4OUT ^= LED2 | LED3 | LED4 | LED5;
 		Delay(DELAY_3750);
 	}
 }
