@@ -118,7 +118,7 @@ typedef enum { TRUE, FALSE } bool;
  * @{
  */
 #define XT1IN				0x01 /** XT2IN: Input */
-#define XT1OUT				0x02 /** XT2OUT: Outpu */
+#define XT1OUT				0x02 /** XT2OUT: Output */
 #define P72					0x04
 #define P73					0x08
 #define P74					0x10
@@ -132,27 +132,31 @@ typedef enum { TRUE, FALSE } bool;
  * @defgroup port8 Port Eight Pin Definitions
  * @{
  */
-#define P80				0x01
-#define P81				0x02
-#define P82				0x04
+#define P80					0x01
+#define P81					0x02
+#define P82					0x04
 #define P83					0x08
 #define P84					0x10
 #define P85					0x20
 #define P86					0x40
-#define P87			0x80
+#define P87					0x80
 #define P8_UNUSED			0x00
 /**@}*/
 
-// Port 9
-#define SCLK_1				0x01
-#define MOSI_2				0x02
-#define MISO_2				0x04
-#define SCLK_2				0x08
-#define MOSI_1				0x10
-#define MISO_1				0x20
-#define CSn_1				0x40
-#define CSn_2				0x80
-#define P9_UNUSED			0x00
+/**
+ * @defgroup port9 Port Nine Pin Definitions
+ * @{
+ */
+#define H1					0x01 /** H1: Input/Output */
+#define H2					0x02 /** H2: Input/Output */
+#define H3					0x04 /** H3: Input/Output */
+#define H4					0x08 /** H4: Input/Output */
+#define P94					0x10 /** P94: N/A */
+#define P95					0x20 /** P95: N/A */
+#define P96					0x40 /** P96: N/A */
+#define P97					0x80 /** P97: N/A */
+#define P9_UNUSED			0x10 | 0x20 | 0x40 | 0x80
+/**@}*/
 
 // Port 10
 #define CAN_CSn				0x01
