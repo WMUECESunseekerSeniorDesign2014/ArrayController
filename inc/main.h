@@ -1,6 +1,11 @@
 #include<msp430x54xa.h>
 
 /**
+ * @note Include guard to prevent recursive inclusion.
+ */
+#ifndef MAIN_H_
+#define MAIN_H_
+/**
 * @enum bool
 *
 * An enumeration defining a boolean (bool) type.
@@ -8,10 +13,21 @@
 typedef enum { TRUE, FALSE } bool;
 
 /**
- * @note Include guard to prevent recursive inclusion.
+ * Function Prototypes
  */
-#ifndef MAIN_H_
-#define MAIN_H_
+extern void Delay(unsigned int delayConstant);
+
+/**
+ * @defgroup delayDefines Delay Timings
+ * @{
+ */
+#define DELAY_0 0
+#define DELAY_100 1600
+#define DELAY_500 8000
+#define DELAY_1000 16000
+#define DELAY_FOREVER 65535 // Run test forever.
+/**@}*/
+
 
 #include "./adc.h"
 #include "./rs232.h"

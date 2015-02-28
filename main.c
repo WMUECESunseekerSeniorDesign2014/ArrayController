@@ -17,6 +17,33 @@ int main(void) {
 	return 0;
 }
 
+/**
+ * A wrapper for __delay_cycles() which allows the developer to create a **synchronous** delay
+ * of a number in microseconds.
+ *
+ * @note This should not be used in conjunction with functions that rely on ISRs!
+ *
+ * @param[in] delayConstant One of the constants defined in Delay Timings.
+ */
+extern void Delay(unsigned int delayConstant) {
+	switch(delayConstant) {
+		case DELAY_100:
+			__delay_cycles(DELAY_100);
+			break;
+		case DELAY_500:
+			__delay_cycles(DELAY_500);
+			break;
+		case DELAY_1000:
+			__delay_cycles(DELAY_1000);
+			break;
+		case DELAY_FOREVER: // If DELAY_FOREVER is passed in, don't do anything!
+			break;
+		default: // If an unknown value is given, then don't perform the delay.
+			printf("Unknown delay constant: %d", delayConstant);
+			break;
+	}
+}
+
 /*
  * Interrupts
  */
