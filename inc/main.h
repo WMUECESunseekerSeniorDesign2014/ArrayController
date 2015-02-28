@@ -29,6 +29,7 @@ void timerA_init( void );
 #define DELAY_100 1600
 #define DELAY_500 8000
 #define DELAY_1000 16000
+#define DELAY_3750 60000 // 6.75 ms delay.
 #define DELAY_FOREVER 65535 // Run test forever.
 /**@}*/
 

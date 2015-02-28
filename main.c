@@ -46,6 +46,8 @@ extern void Delay(unsigned int delayConstant) {
 		case DELAY_1000:
 			__delay_cycles(DELAY_1000);
 			break;
+		case DELAY_3750:
+			__delay_cycles(DELAY_3750);
 		case DELAY_FOREVER: // If DELAY_FOREVER is passed in, don't do anything!
 			break;
 		default: // If an unknown value is given, then don't perform the delay.

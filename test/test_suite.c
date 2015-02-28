@@ -22,7 +22,7 @@ static void Blinky() {
 	for (i = 0; i < compareVal; i++) {
 		P1OUT ^= BIT0 | BIT1;
 		P4OUT ^= BIT0 | BIT1 | BIT2 | BIT3;
-		Delay(DELAY_100);
+		Delay(DELAY_3750);
 	}
 }
 
