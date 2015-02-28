@@ -158,16 +158,20 @@ typedef enum { TRUE, FALSE } bool;
 #define P9_UNUSED			0x10 | 0x20 | 0x40 | 0x80
 /**@}*/
 
-// Port 10
-#define CAN_CSn				0x01
-#define CAN_SIMO			0x02
-#define CAN_SOMI			0x04
-#define CAN_SCLK			0x08
-#define EXT_TX				0x10
-#define EXT_RX				0x20
-#define RELAY4				0x40
-#define RELAY3				0x80
-#define P10_UNUSED			0x00
+/**
+ * @defgroup port10 Port Ten Pin Definitions
+ * @{
+ */
+#define CAN_SCLK			0x01 /** CAN_SCLK: Output */
+#define CAN_CSn				0x02 /** CAN_CSn: Output */
+#define CAN_RSTn			0x04 /** CAN_RSTn: Output */
+#define P103				0x08 /** P103: N/A */
+#define CAN_SI				0x10 /** CAN_SI: Output */
+#define CAN_SO				0x20 /** CAN_SO: Input */
+#define CAN_RX0n			0x40 /** CAN_RX0n: ? */
+#define CAN_RX1n			0x80 /** CAN_RX1n: ? */
+#define P10_UNUSED			0x08
+/**@}*/
 
 // Port 11
 #define RELAY2				0x01
