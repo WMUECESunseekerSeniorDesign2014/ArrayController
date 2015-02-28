@@ -4,4 +4,4 @@ lnk_msp430f5438a.cmd
 .metadata/
 
 # Added .project to gitignore due to version differences of CCS.
-.project
+#.project
