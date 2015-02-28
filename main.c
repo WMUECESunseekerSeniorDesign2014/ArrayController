@@ -41,7 +41,11 @@ extern void Delay(unsigned int delayConstant) {
 		case DELAY_FOREVER: // If DELAY_FOREVER is passed in, don't do anything!
 			break;
 		default: // If an unknown value is given, then don't perform the delay.
-			printf("Unknown delay constant: %d", delayConstant);
+			/** @note As this is necessary for the IO init function, the printf
+			 *  was removed.
+			 *  @note __delay_cycles() requires a constant value; it cannot have
+			 *  a variable parameter passed to it. Therefore, the default case
+			 *  does nothing.*/
 			break;
 	}
 }
