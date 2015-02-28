@@ -113,9 +113,12 @@ typedef enum { TRUE, FALSE } bool;
 #define P6_UNUSED			0x00
 /**@}*/
 
-// Port 7
-#define XT1IN				0x01
-#define XT1OUT				0x02
+/**
+ * @defgroup port5 Port Seven Pin Definitions
+ * @{
+ */
+#define XT1IN				0x01 /** XT2IN: Input */
+#define XT1OUT				0x02 /** XT2OUT: Outpu */
 #define P72					0x04
 #define P73					0x08
 #define P74					0x10
@@ -123,17 +126,22 @@ typedef enum { TRUE, FALSE } bool;
 #define P76					0x40
 #define P77					0x80
 #define P7_UNUSED			0x04 | 0x08 | 0x10 | 0x20 | 0x40 | 0x80
+/**@}*/
 
-// Port 8
-#define JUMPER2				0x01
-#define JUMPER1				0x02
-#define JUMPER0				0x04
+/**
+ * @defgroup port8 Port Eight Pin Definitions
+ * @{
+ */
+#define P80				0x01
+#define P81				0x02
+#define P82				0x04
 #define P83					0x08
 #define P84					0x10
 #define P85					0x20
 #define P86					0x40
-#define CAN_RSTn			0x80
-#define P8_UNUSED			0x08 | 0x10 | 0x20 | 0x40
+#define P87			0x80
+#define P8_UNUSED			0x00
+/**@}*/
 
 // Port 9
 #define SCLK_1				0x01
