@@ -32,7 +32,6 @@ void timerA_init( void );
 #define DELAY_FOREVER 65535 // Run test forever.
 /**@}*/
 
-
 //#include "./adc.h" // removed until we get header file.
 //#include "./rs232.h"
 
