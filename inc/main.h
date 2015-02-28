@@ -173,17 +173,27 @@ typedef enum { TRUE, FALSE } bool;
 #define P10_UNUSED			0x08
 /**@}*/
 
-// Port 11
-#define RELAY2				0x01
-#define RELAY1				0x02
-#define RELAY0				0x04
+/**
+ * @note None of the pins on this port are used.
+ * @defgroup port11 Port Eleven Pin Definitions
+ * @{
+ */
+#define P110				0x01
+#define P112				0x02
+#define P113				0x04
+#define P11_UNUSED			0x01 | 0x02 | 0x04
+/**@}*/
 
-// Port J
+/**
+ * @note These pins are used for the JTAG functionality.
+ * @defgroup portJ Port J Pin Definitions
+ * @{
+ */
 #define JTAG_TDO			0x01
 #define JTAG_TDI			0x02
 #define JTAG_TMS			0x04
 #define JTAG_TCK			0x08
-
+/**@}*/
 /**@}*/
 
 #endif /* MAIN_H_ */
