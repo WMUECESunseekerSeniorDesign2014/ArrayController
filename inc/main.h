@@ -97,16 +97,21 @@ typedef enum { TRUE, FALSE } bool;
 #define P5_UNUSED			0x01 | 0x02
 /**@}*/
 
-// Port 6
-#define S0					0x01
-#define S1					0x02
-#define S2					0x04
-#define S3					0x08
-#define S4					0x10
-#define S5					0x20
-#define S6					0x40
-#define S7					0x80
+/**
+ * @note None of the pins on this port are connected.
+ * @defgroup port6 Port Six Pin Definitions
+ * @{
+ */
+#define P60					0x01
+#define P61					0x02
+#define P62					0x04
+#define P63					0x08
+#define P64					0x10
+#define P65					0x20
+#define P66					0x40
+#define P67					0x80
 #define P6_UNUSED			0x00
+/**@}*/
 
 // Port 7
 #define XT1IN				0x01
