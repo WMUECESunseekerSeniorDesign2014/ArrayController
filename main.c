@@ -87,7 +87,7 @@ void io_init( void )
     /*Port 4 Initialization*/
 	P4OUT = 0x00;	/*Set outputs to ground*/
     P4DIR = LED2 | LED3 | LED4 | LED5 | P4_UNUSED;	/*Setup output pins*/
-	P4OUT = LED2 | LED3 | LED4 | LED5;	/*Turn on LEDs*/
+	P4OUT = ~(LED2 | LED3 | LED4 | LED5);	/*Turn on LEDs*/
 	Delay(DELAY_100);
 
     /*Port 5 Initialization*/
