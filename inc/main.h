@@ -15,7 +15,11 @@ typedef enum { TRUE, FALSE } bool;
 /**
  * Function Prototypes
  */
-extern void Delay(unsigned int delayConstant);
+extern void Delay( unsigned int delayConstant );
+void io_init( void );
+void clock_init( void );
+void SetVCoreUp( unsigned int level );
+void timerA_init( void );
 
 /**
  * @defgroup delayDefines Delay Timings

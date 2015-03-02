@@ -53,6 +53,7 @@ extern void Delay(unsigned int delayConstant) {
 /*
  * Initialize I/O port directions and states
  *	- Drive unused pins as outputs to avoid floating inputs
+ *	- XT1 setup for ACLK and XT2 setup for MCLK
  */
 void io_init( void )
 {
@@ -64,7 +65,7 @@ void io_init( void )
 	/*Generate an interrupt on a negative edge transition (high to low)*/
     P1IES = BUTTON1 | BUTTON2 | CAN_INTn0 | CAN_INTn1;
     P1IFG = 0x00;       /*Clears all interrupt flags on Port 1*/
-    Delay();
+    Delay(DELAY_100);
 //    P1IE  = BUTTON1 | BUTTON2 | CAN_INTn0 | CAN_INTn1;	/*Enable Interrupts*/
 
     /*Port 2 Initialization*/
@@ -74,29 +75,30 @@ void io_init( void )
  	/*Generate an interrupt on a negative edge transition (high to low)*/
     P2IES = ADC_RDYn | DRIVER_SW1 | DRIVER_SW2 | DRIVER_SW3;
     P2IFG = 0x00;	/*Clears all interrupt flags on Port 2*/
-    Delay();
+    Delay(DELAY_100);
 //    P2IE = ADC_RDYn | DRIVER_SW1 | DRIVER_SW2 | DRIVER_SW3;	/*Enable Interrupts*/
 
     /*Port 3 Initialization*/
 	P3OUT = 0x00;	/*Set outputs to ground*/
    	P3DIR = ADC_DIN | ADC_SCLK | TX_EXT | CAN_SCLK2 | P3_UNUSED;	/*Setup output pins*/
-   	P3OUT = CAN_SCLK2;
     P3SEL = ADC_DIN | ADC_DOUT |ADC_SCLK | TX_EXT | RX_EXT | CAN_SCLK2;	/*Setup pins for secondary function*/
-    Delay();
+    Delay(DELAY_100);
 
     /*Port 4 Initialization*/
 	P4OUT = 0x00;	/*Set outputs to ground*/
     P4DIR = LED2 | LED3 | LED4 | LED5 | P4_UNUSED;	/*Setup output pins*/
 	P4OUT = LED2 | LED3 | LED4 | LED5;	/*Turn on LEDs*/
-    Delay();
+	Delay(DELAY_100);
 
     /*Port 5 Initialization*/
 	P5OUT = 0x00;	/*Set outputs to ground*/
     P5DIR = XT2OUT | CAN_RSTn2 | CAN_CSn2 | CAN_SI2 | P5_UNUSED;	/*Setup output pins*/
     P5OUT = CAN_CSn2 | CAN_SI2;
+    P3OUT = CAN_SCLK2;
     P5SEL = XT2IN | XT2OUT | CAN_CSn2 | CAN_SI2 | CAN_SO2;	/*Setup pins for secondary function*/
     P5OUT = CAN_RSTn2;	/*Send a reset signal*/
     P5OUT &= ~P8_UNUSED;
+    Delay(DELAY_100);
 
     /*Port 6 Initialization*/
 	P6OUT = 0x00;	/*Set outputs to ground*/
@@ -106,6 +108,7 @@ void io_init( void )
 	P7OUT = 0x00;	/*Set outputs to ground*/
 	P7DIR = XT1OUT | P7_UNUSED;	/*Setup output pins*/
     P7SEL = XT1IN | XT1OUT;	/*Setup pins for secondary function*/
+    Delay(DELAY_100);
 
     /*Port 8 Initialization*/
 	P8OUT = 0x00;	/*Set outputs to ground*/
@@ -122,7 +125,7 @@ void io_init( void )
 	P10SEL = CAN_SCLK | CAN_CSn | CAN_SI | CAN_SO;
     P10OUT = CAN_RSTn;	/*Send a reset signal*/
     P10OUT &= ~P10_UNUSED;
-    Delay();
+    Delay(DELAY_100);
 
     /*Port 11 Initialization*/
  	P11OUT = 0x00;	/*Set outputs to ground*/
@@ -131,6 +134,16 @@ void io_init( void )
  	/*Port J Initialization*/
 	PJOUT = 0x00;
 	PJDIR = 0x0F;	/*set to output as per user's guide*/
+}
+
+void timerA_init(void)
+{
+ /*Set up Watch Crystal and TIMER A*/
+ TACCR0 = 255;
+ /*The TACCRO initializes the value of Timer A to count up to before setting CCIFG flag
+ (255 for 1/128 sec) (8191 1/4 sec) (16383 1/2 sec) (32767 1 sec)  tick time*/
+ TACCTL0 = 0x0010;	/*Enables CCIFG to cause an interrupt*/
+ TACTL = 0x0110;	/*Set Timer A to ALCK, Start Timer A,  Up mode, Timer-A interrupt enabled*/
 }
 
 /*
@@ -179,4 +192,14 @@ __interrupt void USCI_A3_ISR(void)
     default:
       break;
     }
+}
+
+/*
+* Timer A interrupts
+*/
+#pragma vector = TIMERA0_VECTOR
+ __interrupt void TIMERA_ISR(void)
+{
+
+  TACCTL0 &= 0xFFFE;	/*Clear Flags*/
 }

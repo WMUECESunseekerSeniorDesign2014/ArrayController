@@ -1,8 +1,6 @@
-/* Author: Austin Cross
+/* Author: Austin Cross and Joel Dewey
  *
- * main.c for the AD7739 in the MPPT Array Controller
- *
- * AD7739 functions will be tested to see if everything works correctly
+ * AD7739 code for the 2015 MPPT Array Controller
  *
  * Code if modified from Dr. Bazuin BPS Code
  *
