@@ -15,6 +15,12 @@ bool AC2PC_RX_flag = FALSE;
  */
 int main(void) {
     WDTCTL = WDTPW | WDTHOLD;	// Stop watchdog timer
+
+    test[0].PreDelay = DELAY_0;
+    test[0].Test = BLINKY;
+    test[0].PostDelay = DELAY_FOREVER; // Repeat the test indefinitely.
+
+    ExecuteTests(test, 1);
 	
 	return 0;
 }
