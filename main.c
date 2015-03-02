@@ -17,6 +17,7 @@ bool AC2PC_RX_flag = FALSE;
 int main(void) {
 	UnitTest test[1];
     WDTCTL = WDTPW | WDTHOLD;	// Stop watchdog timer
+    io_init();
 
     test[0].PreDelay = DELAY_0;
     test[0].Test = BLINKY;
