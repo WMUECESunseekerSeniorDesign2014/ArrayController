@@ -24,7 +24,7 @@ extern unsigned char adc_spi_exchange( unsigned char data );  // exchange data (
 void adc_reset(void); // ADC Reset
 extern char adc_init(void); // ADC Initialization
 void adc_ctset(char adc_tcword, char adc_channel); // Channel Time Conversion
-extern char adc_run_config(void); // Run Configuration - Set Volltage Levels
+extern char adc_run_config(void); // Run Configuration - Set Voltage Levels
 extern char adc_selfcal(void); // ADC Self-Calibration - Run Zero and Full Calibrations on all Channels
 extern char  adc_zselfcal(char adc_channel); // ADC Zero Calibration for one channel
 extern char  adc_fselfcal(char adc_channel); // ADC Full Calibration for one channel

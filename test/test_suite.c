@@ -36,6 +36,16 @@ static void Rs232_PC() {
  */
 static void Adc() {
 	/// @todo Implement.
+
+	signed long adc_channel_val = 0;
+
+	adc_spi_init();	/*Setup tranmission to ADC*/
+	adc_init();	/*Initialize ADC*/
+	adc_selfcal();	/*Run a selfcal on all channels*/
+	adc_read_convert(0);
+
+	adc_channel_val = adc_in(2); /*Read in ADC channel 2 reading*/
+	printf("%ld", adc_channel_val);
 }
 
 /**

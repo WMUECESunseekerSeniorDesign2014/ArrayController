@@ -15,6 +15,10 @@ bool AC2PC_RX_flag = FALSE;
  */
 int main(void) {
     WDTCTL = WDTPW | WDTHOLD;	// Stop watchdog timer
+
+    io_init();
+    clock_init();
+    timerA_init();
 	
 	return 0;
 }
@@ -139,7 +143,7 @@ void io_init( void )
 void timerA_init(void)
 {
  /*Set up Watch Crystal and TIMER A*/
- TA0CCR0 = 255;
+ TA0CCR0 = 32767;
  /*The TACCRO initializes the value of Timer A to count up to before setting CCIFG flag
  (255 for 1/128 sec) (8191 1/4 sec) (16383 1/2 sec) (32767 1 sec)  tick time*/
  TA0CCTL0 = 0x0010;	/*Enables CCIFG to cause an interrupt*/
@@ -200,6 +204,7 @@ __interrupt void USCI_A3_ISR(void)
 #pragma vector = TIMERA0_VECTOR
  __interrupt void TIMERA_ISR(void)
 {
+	 P1OUT ^= LED0 | LED1; /*Toggle LEDS*/
 
-  TA0CCTL0 &= 0xFFFE;	/*Clear Flags*/
+	 TA0CCTL0 &= 0xFFFE;	/*Clear Flags*/
 }

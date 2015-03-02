@@ -63,7 +63,7 @@ char adc_init()    // initialize the ADC
   return(status_adc);
 }
 
-char adc_run_config(void)    //Operational ADC4 configuration (read channels 0-3)
+char adc_run_config(void)    //Operational ADC configuration (read channels 0-3)
 {
   char status_adc;
   char i;
