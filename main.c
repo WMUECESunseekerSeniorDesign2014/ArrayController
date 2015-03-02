@@ -139,11 +139,11 @@ void io_init( void )
 void timerA_init(void)
 {
  /*Set up Watch Crystal and TIMER A*/
- TA0CCR0 = 255;
+ TACCR0 = 255;
  /*The TACCRO initializes the value of Timer A to count up to before setting CCIFG flag
  (255 for 1/128 sec) (8191 1/4 sec) (16383 1/2 sec) (32767 1 sec)  tick time*/
- TA0CCTL0 = 0x0010;	/*Enables CCIFG to cause an interrupt*/
- TA0CTL = 0x0110;	/*Set Timer A to ALCK, Start Timer A,  Up mode, Timer-A interrupt enabled*/
+ TACCTL0 = 0x0010;	/*Enables CCIFG to cause an interrupt*/
+ TACTL = 0x0110;	/*Set Timer A to ALCK, Start Timer A,  Up mode, Timer-A interrupt enabled*/
 }
 
 /*
@@ -201,5 +201,5 @@ __interrupt void USCI_A3_ISR(void)
  __interrupt void TIMERA_ISR(void)
 {
 
-  TA0CCTL0 &= 0xFFFE;	/*Clear Flags*/
+  TACCTL0 &= 0xFFFE;	/*Clear Flags*/
 }
