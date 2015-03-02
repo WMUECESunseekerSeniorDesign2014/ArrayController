@@ -1,5 +1,4 @@
 #include "./inc/main.h"
-#include "./inc/test/test_suite.h"
 
 /**
  * @defgroup privRs232Vars Private Main RS-232 Variables
@@ -15,15 +14,7 @@ bool AC2PC_RX_flag = FALSE;
  * main.c
  */
 int main(void) {
-	UnitTest test[1];
     WDTCTL = WDTPW | WDTHOLD;	// Stop watchdog timer
-    io_init();
-
-    test[0].PreDelay = DELAY_0;
-    test[0].Test = BLINKY;
-    test[0].PostDelay = DELAY_FOREVER; // Repeat the test indefinitely.
-
-    ExecuteTests(test, 1);
 	
 	return 0;
 }
@@ -47,8 +38,6 @@ extern void Delay(unsigned int delayConstant) {
 		case DELAY_1000:
 			__delay_cycles(DELAY_1000);
 			break;
-		case DELAY_3750:
-			__delay_cycles(DELAY_3750);
 		case DELAY_FOREVER: // If DELAY_FOREVER is passed in, don't do anything!
 			break;
 		default: // If an unknown value is given, then don't perform the delay.
@@ -98,7 +87,7 @@ void io_init( void )
     /*Port 4 Initialization*/
 	P4OUT = 0x00;	/*Set outputs to ground*/
     P4DIR = LED2 | LED3 | LED4 | LED5 | P4_UNUSED;	/*Setup output pins*/
-	P4OUT = LED2 | LED3 | LED4 | LED5;	/*Turn on LEDs*/
+	P4OUT = ~(LED2 | LED3 | LED4 | LED5);	/*Turn on LEDs*/
 	Delay(DELAY_100);
 
     /*Port 5 Initialization*/
