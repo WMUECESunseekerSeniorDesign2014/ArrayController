@@ -1,4 +1,5 @@
 #include "./inc/main.h"
+#include "./inc/test/test_suite.h"
 
 /**
  * @defgroup privRs232Vars Private Main RS-232 Variables
@@ -19,6 +20,8 @@ int main(void) {
     io_init();
     clock_init();
     timerA_init();
+
+    ExecuteTests(test, 1);
 	
 	return 0;
 }
