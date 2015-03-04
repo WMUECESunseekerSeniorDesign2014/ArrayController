@@ -17,13 +17,26 @@ bool AC2PC_RX_flag = FALSE;
 int main(void) {
     WDTCTL = WDTPW | WDTHOLD;	// Stop watchdog timer
 
+    _DINT();	/*Disable interrupts*/
+
+    /*Initializations*/
     io_init();
     clock_init();
     timerA_init();
+    timerB_init();
 
-    ExecuteTests(test, 1);
+
+    _EINT();	/*Enable interrupts*/
+
+//    test[0].PreDelay = DELAY_0;
+//    test[0].Test = BLINKY;
+//    test[0].PostDelay = DELAY_FOREVER;
+//
+//    ExecuteTests(test, 1);
+
+    while(1);
 	
-	return 0;
+	//return 0;
 }
 
 /**
@@ -60,7 +73,6 @@ extern void Delay(unsigned int delayConstant) {
 /*
  * Initialize I/O port directions and states
  *	- Drive unused pins as outputs to avoid floating inputs
- *	- XT1 setup for ACLK and XT2 setup for MCLK
  */
 void io_init( void )
 {
@@ -83,12 +95,18 @@ void io_init( void )
     P2IES = ADC_RDYn | DRIVER_SW1 | DRIVER_SW2 | DRIVER_SW3;
     P2IFG = 0x00;	/*Clears all interrupt flags on Port 2*/
     Delay(DELAY_100);
+    P2OUT &= ~ADC_RESETn ;
+    Delay(DELAY_100);
+    Delay(DELAY_100);
+    P2OUT |= ADC_RESETn ;
 //    P2IE = ADC_RDYn | DRIVER_SW1 | DRIVER_SW2 | DRIVER_SW3;	/*Enable Interrupts*/
 
     /*Port 3 Initialization*/
 	P3OUT = 0x00;	/*Set outputs to ground*/
    	P3DIR = ADC_DIN | ADC_SCLK | TX_EXT | CAN_SCLK2 | P3_UNUSED;	/*Setup output pins*/
+   	P3DIR &= ~(ADC_DOUT | RX_EXT);
     P3SEL = ADC_DIN | ADC_DOUT |ADC_SCLK | TX_EXT | RX_EXT | CAN_SCLK2;	/*Setup pins for secondary function*/
+    P3OUT = CAN_SCLK2;
     Delay(DELAY_100);
 
     /*Port 4 Initialization*/
@@ -101,10 +119,9 @@ void io_init( void )
 	P5OUT = 0x00;	/*Set outputs to ground*/
     P5DIR = XT2OUT | CAN_RSTn2 | CAN_CSn2 | CAN_SI2 | P5_UNUSED;	/*Setup output pins*/
     P5OUT = CAN_CSn2 | CAN_SI2;
-    P3OUT = CAN_SCLK2;
     P5SEL = XT2IN | XT2OUT | CAN_CSn2 | CAN_SI2 | CAN_SO2;	/*Setup pins for secondary function*/
     P5OUT = CAN_RSTn2;	/*Send a reset signal*/
-    P5OUT &= ~P8_UNUSED;
+    P5OUT &= ~P5_UNUSED;
     Delay(DELAY_100);
 
     /*Port 6 Initialization*/
@@ -143,6 +160,9 @@ void io_init( void )
 	PJDIR = 0x0F;	/*set to output as per user's guide*/
 }
 
+/*
+* Initialize Timer A
+*/
 void timerA_init(void)
 {
  /*Set up Watch Crystal and TIMER A*/
@@ -150,7 +170,26 @@ void timerA_init(void)
  /*The TACCRO initializes the value of Timer A to count up to before setting CCIFG flag
  (255 for 1/128 sec) (8191 1/4 sec) (16383 1/2 sec) (32767 1 sec)  tick time*/
  TA0CCTL0 = 0x0010;	/*Enables CCIFG to cause an interrupt*/
- TA0CTL = 0x0110;	/*Set Timer A to ALCK, Start Timer A,  Up mode, Timer-A interrupt enabled*/
+ TA0CTL = 0x0110;	/*Set Timer A to ACLK, Start Timer A,  Up mode, Timer-A interrupt enabled*/
+}
+
+
+/*
+*  Initialize Timer B
+*/
+void timerB_init( void )
+{
+	/*Set TBCTL to SMCLK at 8 MHz with prescaler of /8 */
+	//TBCTL = CNTL_0 | TBSSEL_2 | ID_3 | TBCLR;	/*TBSSEL_2 = SMCLK, ID_3 = SMCLK/8, clear TBR*/
+	//TBCCR0 = (34000);		/*Set timer to count to this value = */
+	//TBCCTL0 = CCIE;	/*Enable CCR0 interrupt*/
+	//TBCTL |= MC_1;	/*Set timer to 'up' count mode*/
+
+	/*Assign ACLK to Timer B with prescaler /2*/
+	TBCTL = CNTL_0 | TBSSEL_1 | ID_1 | TBCLR;	/*TBSSEL_1 = ACLK, ID_2 = ACLK/2 while ID_0 = CLK, clear TBR with TBCLR*/
+	TBCCR0 = (8192);	/*Set timer to count to this value = */
+	TBCCTL0 = CCIE;	/*Enable CCR0 interrupt*/
+	TBCTL |= MC_1;	/*Set timer to 'up' count mode*/
 }
 
 /*
@@ -201,13 +240,24 @@ __interrupt void USCI_A3_ISR(void)
     }
 }
 
+
 /*
 * Timer A interrupts
 */
-#pragma vector = TIMERA0_VECTOR
+#pragma vector = TIMER0_A0_VECTOR
  __interrupt void TIMERA_ISR(void)
 {
-	 P1OUT ^= LED0 | LED1; /*Toggle LEDS*/
-
+	 P1OUT ^= LED0;
 	 TA0CCTL0 &= 0xFFFE;	/*Clear Flags*/
 }
+
+ /*
+ * Timer B interrupts
+ * interrupt(TIMERB0_VECTOR) timer_b0(void)
+ */
+ #pragma vector = TIMERB0_VECTOR
+ __interrupt void timer_b0(void)
+ {
+	 P1OUT ^= LED1;
+ }
+

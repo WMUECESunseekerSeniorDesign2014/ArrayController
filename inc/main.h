@@ -20,6 +20,12 @@ void io_init( void );
 void clock_init( void );
 void SetVCoreUp( unsigned int level );
 void timerA_init( void );
+void timerB_init( void );
+
+/* Event timing */
+#define SMCLK_RATE		8000000		// Hz
+#define ACLK_RATE		32768		// Hz
+#define TICK_RATE		100			// Hz
 
 /**
  * @defgroup delayDefines Delay Timings
