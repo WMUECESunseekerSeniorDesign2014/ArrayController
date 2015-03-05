@@ -9,15 +9,26 @@ char test_buffer_PC[60];
 char *putPC_ptr, *getPC_ptr;
 bool put_status_PC, get_status_PC;
 bool AC2PC_RX_flag = FALSE;
+
+/*Global Variables*/
+volatile unsigned char adc_stat[32];
+volatile signed long adc_voltage[32];
+int i;
+
+
 /**@}*/
 
 /*
  * main.c
  */
 int main(void) {
-    WDTCTL = WDTPW | WDTHOLD;	// Stop watchdog timer
+
+	WDTCTL = WDTPW | WDTHOLD | WDTSSEL__ACLK; /*Stop watchdog timer to prevent time out reset*/
 
     _DINT();	/*Disable interrupts*/
+
+    for(i=0;i<=31;i++) adc_voltage[i]=0;
+    for(i=0;i<=31;i++) adc_stat[i]=0;
 
     /*Initializations*/
     io_init();
@@ -25,11 +36,29 @@ int main(void) {
     timerA_init();
     timerB_init();
 
+	adc_spi_init();	/*Setup tranmission to ADC*/
+	adc_init();	/*Initialize ADC*/
 
+	WDTCTL = WDT_ARST_1000; /*Stop watchdog timer to prevent time out reset*/
     _EINT();	/*Enable interrupts*/
 
+	adc_selfcal();	/*Run a selfcal on all channels*/
+	adc_read_convert(0);
+
+	adc_voltage[0] = adc_in(0); /*Read in ADC channel reading*/
+	adc_voltage[1] = adc_in(1); /*Read in ADC channel reading*/
+	adc_voltage[2] = adc_in(2); /*Read in ADC channel reading*/
+	adc_voltage[3] = adc_in(3); /*Read in ADC channel reading*/
+	adc_voltage[4] = adc_in(4); /*Read in ADC channel reading*/
+	adc_voltage[5] = adc_in(5); /*Read in ADC channel reading*/
+	adc_voltage[6] = adc_in(6); /*Read in ADC channel reading*/
+	adc_voltage[7] = adc_in(7); /*Read in ADC channel reading*/
+
+
+//	UnitTest test[1];
+//
 //    test[0].PreDelay = DELAY_0;
-//    test[0].Test = BLINKY;
+//    test[0].Test = ADC;
 //    test[0].PostDelay = DELAY_FOREVER;
 //
 //    ExecuteTests(test, 1);
