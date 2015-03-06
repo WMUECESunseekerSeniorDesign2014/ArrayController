@@ -7,7 +7,6 @@
 
 #include <stdio.h>
 #include "../inc/main.h"
-#include "../inc/test/test_suite.h"
 
 /**
  * A simple test blinking the LED multiple times.
@@ -24,17 +23,31 @@ static void Blinky() {
 }
 
 /**
- * Read and write to the PC using the RS-232 controller on the
+ * Write to the PC using the RS-232 controller on the
  * Array Controller.
- *
- * @note Send
  */
-static void Rs232_PC() {
-	char sendData[12] = "Hello World!";
-	char receiveData[12];
+static void Rs232_PC_Puts() {
+	char sendData[15] = "Hello World!";
 
-	AC2PC_puts(sendData);
-	AC2PC_gets(receiveData);
+	// Initialize pointer to location 0 of the buffer.
+	putPC_ptr = &sendData[0];
+
+	// No interrupt has come through yet, so mark this to FALSE initially.
+	put_status_PC = FALSE;
+
+	// Instruct the microcontroller, on interrupt, to send data.
+	AC2PC_put_int();
+	put_status_PC = TRUE;
+	AC2PC_RX_flag = FALSE;
+}
+
+
+static void Rs232_PC_Gets() {
+	char receiveData[15];
+	getPC_ptr = &receiveData[0];
+	get_status_PC = FALSE;
+
+	while(AC2PC_RX_flag == FALSE); // Wait for data transfer.
 }
 
 /**
@@ -107,8 +120,11 @@ extern void ExecuteTests(UnitTest tests[], int numOfTests) {
 			case BLINKY:
 				Blinky();
 				break;
-			case RS232_PC:
-				Rs232_PC();
+			case RS232_PC_GETS:
+				Rs232_PC_Gets();
+				break;
+			case RS232_PC_PUTS:
+				Rs232_PC_Puts();
 				break;
 			case ADC:
 				Adc();

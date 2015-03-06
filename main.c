@@ -4,11 +4,11 @@
 /**
  * @defgroup privRs232Vars Private Main RS-232 Variables
  */
-volatile int RX_INT_count = 0;
-char test_buffer_PC[60];
-char *putPC_ptr, *getPC_ptr;
-bool put_status_PC, get_status_PC;
-bool AC2PC_RX_flag = FALSE;
+//volatile int RX_INT_count = 0;
+//char test_buffer_PC[60];
+//char *putPC_ptr, *getPC_ptr;
+//bool put_status_PC, get_status_PC;
+//bool AC2PC_RX_flag = FALSE;
 /**@}*/
 
 /*
@@ -37,7 +37,7 @@ int main(void) {
     test[0].PostDelay = DELAY_3750;
 
     test[1].PreDelay = DELAY_0;
-	test[1].Test = RS232_PC;
+	test[1].Test = RS232_PC_PUTS;
 	test[1].PostDelay = DELAY_FOREVER;
 
     while(1) {
@@ -219,12 +219,12 @@ __interrupt void USCI_A0_ISR(void)
 	extern bool put_status_PC, get_status_PC, AC2PC_RX_flag;
 	char ch;
 
-    switch(__even_in_range(UCA3IV,16))
+    switch(__even_in_range(UCA0IV,16))
     {
     case 0:		                              // Vector 0 - no interrupt
       break;
     case 2:                                   // Data Received - UCRXIFG
-          ch = UCA3RXBUF;
+          ch = UCA0RXBUF;
           *getPC_ptr++ = ch;
           if (ch == 0x0D){
              *getPC_ptr = 0;
@@ -241,12 +241,12 @@ __interrupt void USCI_A0_ISR(void)
       ch = *putPC_ptr++;
 	  if (ch == '\0')
 	  {
-	  	UCA3IE &= ~UCTXIE;
+	  	UCA0IE &= ~UCTXIE;
 		put_status_PC = FALSE;
 	  }
 	  else
 	  {
-		UCA3TXBUF = ch;
+		UCA0TXBUF = ch;
 	  }
       break;
     default:
