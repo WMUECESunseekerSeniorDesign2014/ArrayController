@@ -4,12 +4,13 @@
 /**
  * @defgroup privRs232Vars Private Main RS-232 Variables
  */
-//volatile int RX_INT_count = 0;
-//char test_buffer_PC[60];
-//char *putPC_ptr, *getPC_ptr;
-//bool put_status_PC, get_status_PC;
-//bool AC2PC_RX_flag = FALSE;
+volatile int RX_INT_count = 0;
+char test_buffer_PC[60];
+char *putPC_ptr, *getPC_ptr;
+bool put_status_PC, get_status_PC;
+bool AC2PC_RX_flag = FALSE;
 /**@}*/
+
 
 /*
  * main.c
@@ -36,12 +37,20 @@ int main(void) {
     test[0].Test = BLINKY;
     test[0].PostDelay = DELAY_3750;
 
-    test[1].PreDelay = DELAY_0;
-	test[1].Test = RS232_PC_PUTS;
-	test[1].PostDelay = DELAY_FOREVER;
+    char sendData[15] = "Hello World!";
+
+    	// Initialize pointer to location 0 of the buffer.
+    	putPC_ptr = &sendData[0];
+
+    	// No interrupt has come through yet, so mark this to FALSE initially.
+    	put_status_PC = FALSE;
+
+    	// Instruct the microcontroller, on interrupt, to send data.
+    	AC2PC_put_int();
+    	put_status_PC = TRUE;
+    	AC2PC_RX_flag = FALSE;
 
     while(1) {
-    	ExecuteTests(test, 2);
     }
 	
 	return 0;

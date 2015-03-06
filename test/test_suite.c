@@ -27,27 +27,15 @@ static void Blinky() {
  * Array Controller.
  */
 static void Rs232_PC_Puts() {
-	char sendData[15] = "Hello World!";
-
-	// Initialize pointer to location 0 of the buffer.
-	putPC_ptr = &sendData[0];
-
-	// No interrupt has come through yet, so mark this to FALSE initially.
-	put_status_PC = FALSE;
-
-	// Instruct the microcontroller, on interrupt, to send data.
-	AC2PC_put_int();
-	put_status_PC = TRUE;
-	AC2PC_RX_flag = FALSE;
 }
 
 
 static void Rs232_PC_Gets() {
-	char receiveData[15];
-	getPC_ptr = &receiveData[0];
-	get_status_PC = FALSE;
-
-	while(AC2PC_RX_flag == FALSE); // Wait for data transfer.
+//	char receiveData[15];
+//	getPC_ptr = &receiveData[0];
+//	get_status_PC = FALSE;
+//
+//	while(AC2PC_RX_flag == FALSE); // Wait for data transfer.
 }
 
 /**
@@ -58,13 +46,13 @@ static void Adc() {
 
 	signed long adc_channel_val = 0;
 
-	adc_spi_init();	/*Setup tranmission to ADC*/
-	adc_init();	/*Initialize ADC*/
-	adc_selfcal();	/*Run a selfcal on all channels*/
-	adc_read_convert(0);
-
-	adc_channel_val = adc_in(2); /*Read in ADC channel 2 reading*/
-	printf("%ld", adc_channel_val);
+//	adc_spi_init();	/*Setup tranmission to ADC*/
+//	adc_init();	/*Initialize ADC*/
+//	adc_selfcal();	/*Run a selfcal on all channels*/
+//	adc_read_convert(0);
+//
+//	adc_channel_val = adc_in(2); /*Read in ADC channel 2 reading*/
+//	printf("%ld", adc_channel_val);
 }
 
 /**

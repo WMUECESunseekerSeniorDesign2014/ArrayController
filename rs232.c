@@ -75,7 +75,7 @@ int AC2PC_gets(char *ptr)
 void AC2PC_put_int(void)
 {
     extern char *putPC_ptr;
-    extern char put_status_PC;
+    extern bool put_status_PC;
     char ch;
 
     ch = *putPC_ptr++;

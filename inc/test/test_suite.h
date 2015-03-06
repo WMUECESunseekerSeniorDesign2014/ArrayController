@@ -2,6 +2,8 @@
  * @brief The header file defining the tests to be run on the Array Controller.
  * @author Joel Dewey <joel.s.dewey@wmich.edu>
  */
+#ifndef TEST_SUITE_H_
+#define TEST_SUITE_H_
 
 /**
  * @struct UnitTest
@@ -18,18 +20,6 @@ typedef struct {
  * Function prototype for executing tests.
  */
 extern void ExecuteTests(UnitTest tests[], int numOfTests);
-
-#ifndef TEST_SUITE_H_
-#define TEST_SUITE_H_
-
-/**
- * RS-232 variables have been placed here for testing.
- */
-volatile int RX_INT_count = 0;
-char test_buffer_PC[60];
-char *putPC_ptr, *getPC_ptr;
-bool put_status_PC, get_status_PC;
-bool AC2PC_RX_flag = FALSE;
 
 /**
  * @defgroup testDefines Test Defines
