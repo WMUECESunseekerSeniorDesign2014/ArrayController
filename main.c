@@ -28,6 +28,7 @@ int main(void) {
 
     // Initialize the RS-232 interface.
     AC2PC_init();
+    UCA0IE |= UCRXIE; // Enable interrupts on the RX line.
 
     _EINT();	/*Enable interrupts*/
 
@@ -64,6 +65,9 @@ extern void Delay(unsigned int delayConstant) {
 			break;
 		case DELAY_1000:
 			__delay_cycles(DELAY_1000);
+			break;
+		case DELAY_3750:
+			__delay_cycles(DELAY_3750);
 			break;
 		case DELAY_FOREVER: // If DELAY_FOREVER is passed in, don't do anything!
 			break;
