@@ -15,6 +15,7 @@ bool AC2PC_RX_flag = FALSE;
  * main.c
  */
 int main(void) {
+	UnitTest test[2];
     WDTCTL = WDTPW | WDTHOLD;	// Stop watchdog timer
 
     _DINT();	/*Disable interrupts*/
@@ -25,18 +26,24 @@ int main(void) {
     timerA_init();
     timerB_init();
 
+    // Initialize the RS-232 interface.
+    AC2PC_init();
 
     _EINT();	/*Enable interrupts*/
 
-//    test[0].PreDelay = DELAY_0;
-//    test[0].Test = BLINKY;
-//    test[0].PostDelay = DELAY_FOREVER;
-//
-//    ExecuteTests(test, 1);
+    test[0].PreDelay = DELAY_0;
+    test[0].Test = BLINKY;
+    test[0].PostDelay = DELAY_3750;
 
-    while(1);
+    test[1].PreDelay = DELAY_0;
+	test[1].Test = RS232_PC;
+	test[1].PostDelay = DELAY_FOREVER;
+
+    while(1) {
+    	ExecuteTests(test, 2);
+    }
 	
-	//return 0;
+	return 0;
 }
 
 /**
@@ -197,9 +204,12 @@ void timerB_init( void )
  */
 /*
 * BPS2PC Interrupt Service Routine
+*
+* @note P3.4 and P3.5 are labeled as UCA0TXD/UCA0RXD, so it's being assumed
+* that the interrupt vector location is USCI_A0_VECTOR.
 */
-	#pragma vector=USCI_A3_VECTOR
-__interrupt void USCI_A3_ISR(void)
+#pragma vector=USCI_A0_VECTOR
+__interrupt void USCI_A0_ISR(void)
 {
 	extern char *putPC_ptr, *getPC_ptr;
 	extern bool put_status_PC, get_status_PC, AC2PC_RX_flag;

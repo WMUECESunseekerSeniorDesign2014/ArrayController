@@ -26,9 +26,15 @@ static void Blinky() {
 /**
  * Read and write to the PC using the RS-232 controller on the
  * Array Controller.
+ *
+ * @note Send
  */
 static void Rs232_PC() {
-	/// @todo Implement.
+	char sendData[12] = "Hello World!";
+	char receiveData[12];
+
+	AC2PC_puts(sendData);
+	AC2PC_gets(receiveData);
 }
 
 /**

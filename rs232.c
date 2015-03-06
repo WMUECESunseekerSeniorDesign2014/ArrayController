@@ -19,7 +19,7 @@ void AC2GPS_init(void) {
 
 	UCA0IFG &= ~UCTXIFG;			// Clear the transmit and receive interrupt flags.
 	UCA0IFG &= ~UCRXIFG;
-	UCA0CTL1 &= ~UCSWRST;			// initalize state machine
+	UCA0CTL1 &= ~UCSWRST;			// Initialize state machine
 }
 
 // Loads the Transmit (TX) Buffer with data.
