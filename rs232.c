@@ -14,26 +14,26 @@
  */
 void AC2PC_init(void)
 {
-    UCA3CTL1 |= UCSWRST;                      // **Put state machine in reset**
-    UCA3CTL1 |= UCSSEL_2;                     // SMCLK
-    UCA3BRW = 833;                              // 8 MHz 9600 (see User's Guide) ///@todo Inquire about this baud rate.
-    UCA3MCTL |= UCBRS_1 + UCBRF_0;            // Modulation UCBRSx=1, UCBRFx=0
+    UCA0CTL1 |= UCSWRST;                      // **Put state machine in reset**
+    UCA0CTL1 |= UCSSEL_2;                     // SMCLK
+    UCA0BRW = 833;                              // 8 MHz 9600 (see User's Guide) ///@todo Inquire about this baud rate.
+    UCA0MCTL |= UCBRS_1 + UCBRF_0;            // Modulation UCBRSx=1, UCBRFx=0
 
-	UCA3IFG &= ~UCTXIFG;			//Clear Xmit and Rec interrupt flags
-	UCA3IFG &= ~UCRXIFG;
-	UCA3CTL1 &= ~UCSWRST;			// initalize state machine
+	UCA0IFG &= ~UCTXIFG;			//Clear Xmit and Rec interrupt flags
+	UCA0IFG &= ~UCRXIFG;
+	UCA0CTL1 &= ~UCSWRST;			// initalize state machine
 }
 
 void AC2PC_putchar(char data)
 {
-    while((UCA3IFG & UCTXIFG) == 0);
-    UCA3TXBUF = data;
+    while((UCA0IFG & UCTXIFG) == 0);
+    UCA0TXBUF = data;
 }
 
 unsigned char AC2PC_getchar(void)
 {
-    while((UCA3IFG & UCRXIFG) == 0);
-    return(UCA3RXBUF);
+    while((UCA0IFG & UCRXIFG) == 0);
+    return(UCA0RXBUF);
 }
 
 int AC2PC_puts(char *str)
@@ -82,13 +82,13 @@ void AC2PC_put_int(void)
 
 	if (ch == '\0')
 	{
-		UCA3IE &= ~UCTXIE;
+		UCA0IE &= ~UCTXIE;
 		put_status_PC = FALSE;
 	}
 	else
 	{
-		UCA3TXBUF = ch;
-		UCA3IE |= UCTXIE;
+		UCA0TXBUF = ch;
+		UCA0IE |= UCTXIE;
 		put_status_PC = TRUE;
 	}
 }
