@@ -47,7 +47,6 @@ int main(void) {
 
 	// Instruct the microcontroller, on interrupt, to send data.
 	AC2PC_put_int();
-	put_status_PC = TRUE;
 	AC2PC_RX_flag = FALSE;
 
     while(1) {
