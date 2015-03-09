@@ -92,3 +92,31 @@ void AC2PC_put_int(void)
 		put_status_PC = TRUE;
 	}
 }
+
+void AC2PC_Prompt(char code) {
+	extern bool PROMPT_ACTIVE;
+
+	switch(code) {
+		case PROMPT_EXIT:
+			/** @todo Implement exiting the prompt. */
+			break;
+		case PROMPT_BATT_DUMP:
+			/** @todo Dump battery stats. */
+			break;
+		case PROMPT_SHUNT_DUMP:
+			/** @todo Dump shunt stats. */
+			break;
+		case PROMPT_MPPT_DUMP:
+			/** @todo Dump MPPT stats.. */
+			break;
+		case PROMPT_THERM_DUMP:
+			/** @todo Dump thermistor temperatures. */
+			break;
+		case PROMPT_MPPT_SWITCH_DUMP:
+			/** @todo Dump status of MPPT switches. */
+			break;
+		default:
+			/** @todo Display an error to the user. */
+			break;
+	}
+}
