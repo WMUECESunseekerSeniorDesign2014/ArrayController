@@ -1,10 +1,3 @@
-/*
- * rs232.h
- *
- *  Created on: Dec 15, 2014
- *      Author: Joel
- */
-
 #ifndef RS232_H_
 #define RS232_H_
 
@@ -16,6 +9,17 @@ static char RS232_Test1[13] = "Sunseeker \n\r\0";
 static char RS232_Test2[9] = "2014. \n\r\0";
 static char Parse_header[6][5] = {"BJB \0","JLB \0","AGC \0","JSD \0","JTL \0","SPI \0"};
 
+/**
+ * @defgroup promptDefs Prompt Defines
+ * @{
+ */
+#define PROMPT_EXIT 			0
+#define PROMPT_BATT_DUMP 		1
+#define PROMPT_SHUNT_DUMP 		2
+#define PROMPT_MPPT_DUMP 		3
+#define PROMPT_THERM_DUMP 		4
+#define PROMPT_MPPT_SWITCH_DUMP 5
+/** @} */
 /*
  * Function Definitions
  */
