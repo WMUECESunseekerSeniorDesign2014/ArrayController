@@ -259,7 +259,7 @@ __interrupt void USCI_A0_ISR(void)
     		putPC_ptr = &RS232Active[0];
     		UCA0TXBUF = *putPC_ptr++;
     		UCA0IE |= UCTXIE;
-    	} else if (Prompt_Active && put_status_PC == FALSE) { // Prevent too many commands coming in at once.
+    	} else if (Prompt_Active == TRUE && put_status_PC == FALSE) { // Prevent too many commands coming in at once.
     		getPC_ptr = &ch;
     		AC2PC_Interpret(); // Interpret command.
     	} else {
