@@ -5,10 +5,12 @@
  * @defgroup privRs232Vars Private Main RS-232 Variables
  */
 volatile int RX_INT_count = 0;
-char test_buffer_PC[60];
+char tx_PC_buffer[60];
+char rx_PC_buffer[60];
 char *putPC_ptr, *getPC_ptr;
 bool put_status_PC, get_status_PC;
 bool AC2PC_RX_flag = FALSE;
+bool PROMPT_ACTIVE = FALSE;
 /**@}*/
 
 
@@ -32,10 +34,6 @@ int main(void) {
     UCA0IE |= UCRXIE; // Enable interrupts on the RX line.
 
     _EINT();	/*Enable interrupts*/
-
-    test[0].PreDelay = DELAY_0;
-    test[0].Test = BLINKY;
-    test[0].PostDelay = DELAY_3750;
 
     char sendData[15] = "Hello World!";
 
@@ -211,51 +209,82 @@ void timerB_init( void )
 	TBCTL |= MC_1;	/*Set timer to 'up' count mode*/
 }
 
+void AC2PC_Interpret(void) {
+	extern char *getPC_ptr, *putPC_ptr;
+	extern bool PROMPT_ACTIVE;
+
+	switch(*getPC_ptr) { // Assign first character of output data to putPC_ptr.
+		case PROMPT_EXIT:
+			/** @todo Implement exiting the prompt. */
+			PROMPT_ACTIVE = FALSE;
+			tx_PC_buffer[0] = 0x30; // ASCII for 0.
+			break;
+		case PROMPT_BATT_DUMP:
+			/** @todo Dump battery stats. */
+			break;
+		case PROMPT_SHUNT_DUMP:
+			/** @todo Dump shunt stats. */
+			break;
+		case PROMPT_MPPT_DUMP:
+			/** @todo Dump MPPT stats. */
+			break;
+		case PROMPT_THERM_DUMP:
+			/** @todo Dump thermistor temperatures. */
+			break;
+		case PROMPT_MPPT_SWITCH_DUMP:
+			/** @todo Dump status of MPPT switches. */
+			break;
+		default:
+			/** @todo Display an error to the user. Maybe error light? */
+			break;
+	}
+	tx_PC_buffer[1] = '\0';
+	putPC_ptr = &tx_PC_buffer[0];
+	UCA0IE |= UCTXIE;
+}
+
 /*
  * Interrupts
  */
 /*
 * BPS2PC Interrupt Service Routine
-*
-* @note P3.4 and P3.5 are labeled as UCA0TXD/UCA0RXD, so it's being assumed
-* that the interrupt vector location is USCI_A0_VECTOR.
 */
 #pragma vector=USCI_A0_VECTOR
 __interrupt void USCI_A0_ISR(void)
 {
 	extern char *putPC_ptr, *getPC_ptr;
-	extern bool put_status_PC, get_status_PC, AC2PC_RX_flag;
+	extern bool put_status_PC, get_status_PC, AC2PC_RX_flag, PROMPT_ACTIVE;
 	char ch;
 
     switch(__even_in_range(UCA0IV,16))
     {
     case 0:		                              // Vector 0 - no interrupt
-      break;
+    	break;
     case 2:                                   // Data Received - UCRXIFG
-          ch = UCA0RXBUF;
-          *getPC_ptr++ = ch;
-          if (ch == 0x0D){
-             *getPC_ptr = 0;
-             getPC_ptr = &test_buffer_PC[0];
-             AC2PC_RX_flag = TRUE;
-		     get_status_PC = FALSE;
-          }
-          else
-          {
-		     get_status_PC = TRUE;
-         }
-     break;
+    	ch = UCA0RXBUF;
+
+    	if (ch == 0x0D) { // Activate prompt.
+    		PROMPT_ACTIVE = TRUE;
+    		tx_PC_buffer[0] = PROMPT_ACTIVE;
+    		tx_PC_buffer[1] = '\0';
+    		putPC_ptr = &tx_PC_buffer;
+    		UCA0IE |= UCTXIE;
+    	} else if (PROMPT_ACTIVE) {
+    		rx_PC_buffer[0] = ch;
+    		getPC_ptr = &rx_PC_buffer[0];
+    		AC2PC_Interpret(); // Interpret command.
+    	} else {
+    		// Toggle error light?
+    	}
+		break;
     case 4:                                   // TX Buffer Empty - UCTXIFG
-      ch = *putPC_ptr++;
-	  if (ch == '\0')
-	  {
-	  	UCA0IE &= ~UCTXIE;
-		put_status_PC = FALSE;
-	  }
-	  else
-	  {
-		UCA0TXBUF = ch;
-	  }
+    	ch = *putPC_ptr++;
+
+    	if (ch == '\0') {
+    		UCA0IE &= ~UCTXIE;
+    	} else {
+    		UCA0TXBUF = ch;
+    	}
       break;
     default:
       break;
