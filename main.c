@@ -252,7 +252,9 @@ __interrupt void USCI_A0_ISR(void)
     case 0:		                              // Vector 0 - no interrupt
     	break;
     case 2:                                   // Data Received - UCRXIFG
-    	ch = UCA0RXBUF;
+    	/** @todo Need to find a better way to do this that will handle numbers > 9. */
+    	AC2PC_gets(rx_PC_buffer);
+    	ch = rx_PC_buffer[0];
 
     	if (ch == 0x0D && Prompt_Active == FALSE) { // Activate prompt.
     		Prompt_Active = TRUE;
