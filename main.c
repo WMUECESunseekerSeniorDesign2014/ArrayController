@@ -9,8 +9,7 @@ char tx_PC_buffer[60];
 char rx_PC_buffer[60];
 char *putPC_ptr, *getPC_ptr;
 bool put_status_PC, get_status_PC;
-bool AC2PC_RX_flag = FALSE;
-bool PROMPT_ACTIVE = FALSE;
+bool Prompt_Active = FALSE;
 /**@}*/
 
 
@@ -35,17 +34,9 @@ int main(void) {
 
     _EINT();	/*Enable interrupts*/
 
-    char sendData[15] = "Hello World!";
-
-	// Initialize pointer to location 0 of the buffer.
-	putPC_ptr = &sendData[0];
-
 	// No interrupt has come through yet, so mark this to FALSE initially.
 	put_status_PC = FALSE;
-
-	// Instruct the microcontroller, on interrupt, to send data.
-	AC2PC_put_int();
-	AC2PC_RX_flag = FALSE;
+	Prompt_Active = FALSE;
 
     while(1) {
     }
@@ -211,13 +202,14 @@ void timerB_init( void )
 
 void AC2PC_Interpret(void) {
 	extern char *getPC_ptr, *putPC_ptr;
-	extern bool PROMPT_ACTIVE;
+	extern bool Prompt_Active, put_status_PC;
 
 	switch(*getPC_ptr) { // Assign first character of output data to putPC_ptr.
 		case PROMPT_EXIT:
 			/** @todo Implement exiting the prompt. */
-			PROMPT_ACTIVE = FALSE;
-			tx_PC_buffer[0] = 0x30; // ASCII for 0.
+			Prompt_Active = FALSE;
+			putPC_ptr = &RS232NotActive[0];
+			put_status_PC = TRUE;
 			break;
 		case PROMPT_BATT_DUMP:
 			/** @todo Dump battery stats. */
@@ -253,7 +245,7 @@ void AC2PC_Interpret(void) {
 __interrupt void USCI_A0_ISR(void)
 {
 	extern char *putPC_ptr, *getPC_ptr;
-	extern bool put_status_PC, get_status_PC, AC2PC_RX_flag, PROMPT_ACTIVE;
+	extern bool put_status_PC, get_status_PC, Prompt_Active;
 	char ch;
 
     switch(__even_in_range(UCA0IV,16))
@@ -263,15 +255,12 @@ __interrupt void USCI_A0_ISR(void)
     case 2:                                   // Data Received - UCRXIFG
     	ch = UCA0RXBUF;
 
-    	if (ch == 0x0D) { // Activate prompt.
-    		PROMPT_ACTIVE = TRUE;
-    		tx_PC_buffer[0] = PROMPT_ACTIVE;
-    		tx_PC_buffer[1] = '\0';
-    		putPC_ptr = &tx_PC_buffer;
+    	if (ch == 0x0D && Prompt_Active == FALSE) { // Activate prompt.
+    		Prompt_Active = TRUE;
+    		putPC_ptr = &RS232Active[0];
     		UCA0IE |= UCTXIE;
-    	} else if (PROMPT_ACTIVE) {
-    		rx_PC_buffer[0] = ch;
-    		getPC_ptr = &rx_PC_buffer[0];
+    	} else if (Prompt_Active && put_status_PC == FALSE) { // Prevent too many commands coming in at once.
+    		getPC_ptr = &ch;
     		AC2PC_Interpret(); // Interpret command.
     	} else {
     		// Toggle error light?
@@ -282,6 +271,7 @@ __interrupt void USCI_A0_ISR(void)
 
     	if (ch == '\0') {
     		UCA0IE &= ~UCTXIE;
+    		put_status_PC = FALSE;
     	} else {
     		UCA0TXBUF = ch;
     	}

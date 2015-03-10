@@ -4,10 +4,8 @@
 /*
  * Constant Declarations
  */
-static char RS232Cmd[5] = "+++\r\0";
-static char RS232_Test1[13] = "Sunseeker \n\r\0";
-static char RS232_Test2[9] = "2014. \n\r\0";
-static char Parse_header[6][5] = {"BJB \0","JLB \0","AGC \0","JSD \0","JTL \0","SPI \0"};
+static char RS232Active[] = "Prompt active.";
+static char RS232NotActive[] = "Exiting prompt.";
 
 /**
  * @defgroup promptDefs Prompt Defines
