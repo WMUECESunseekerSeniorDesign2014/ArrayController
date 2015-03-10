@@ -204,7 +204,7 @@ void AC2PC_Interpret(void) {
 	extern char *getPC_ptr, *putPC_ptr;
 	extern bool Prompt_Active, put_status_PC;
 
-	switch(*getPC_ptr) { // Assign first character of output data to putPC_ptr.
+	switch((*getPC_ptr) - '0') { // Hackish way to tell MCU that *getPC_ptr is a number.
 		case PROMPT_EXIT:
 			/** @todo Implement exiting the prompt. */
 			Prompt_Active = FALSE;
@@ -230,8 +230,7 @@ void AC2PC_Interpret(void) {
 			/** @todo Display an error to the user. Maybe error light? */
 			break;
 	}
-	tx_PC_buffer[1] = '\0';
-	putPC_ptr = &tx_PC_buffer[0];
+	UCA0TXBUF = *putPC_ptr++;
 	UCA0IE |= UCTXIE;
 }
 
@@ -258,6 +257,7 @@ __interrupt void USCI_A0_ISR(void)
     	if (ch == 0x0D && Prompt_Active == FALSE) { // Activate prompt.
     		Prompt_Active = TRUE;
     		putPC_ptr = &RS232Active[0];
+    		UCA0TXBUF = *putPC_ptr++;
     		UCA0IE |= UCTXIE;
     	} else if (Prompt_Active && put_status_PC == FALSE) { // Prevent too many commands coming in at once.
     		getPC_ptr = &ch;

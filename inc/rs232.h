@@ -4,8 +4,8 @@
 /*
  * Constant Declarations
  */
-static char RS232Active[] = "Prompt active.";
-static char RS232NotActive[] = "Exiting prompt.";
+static char RS232Active[] = "Prompt active.\n";
+static char RS232NotActive[] = "Exiting prompt.\n";
 
 /**
  * @defgroup promptDefs Prompt Defines
