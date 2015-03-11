@@ -35,7 +35,7 @@
 #include "./inc/can.h"
 
 // Public variables
-can_variables			can;
+can_variables			can_MPPT;
 
 // Private variables
 unsigned char 			buffer[16];
@@ -63,7 +63,7 @@ unsigned char 			buffer[16];
  *	- Enables ERROR and RX interrupts on IRQ pin
  *	- Switches to normal (operating) mode
  */
-void can_init( void )
+void can_init_MPPT( void )
 {
 	// Set up reset and clocking
 	can_reset();
@@ -151,7 +151,7 @@ void can_init( void )
  *		- If both, handle the error preferentially to the message
  *	- Clear the appropriate IRQ flag bits
  */
-void can_receive( void )
+void can_receive_MPPT( void )
 {
 	unsigned char flags;
 
@@ -165,12 +165,12 @@ void can_receive( void )
 		// Clear error flags
 		can_mod( EFLAG, buffer[0], 0x00 );	// Modify (to '0') all bits that were set
 		// Return error code, a blank address field, and error registers in data field
-		can.status = CAN_ERROR;
-		can.address = 0x0000;
-		can.data.data_u8[0] = flags;		// CANINTF
-		can.data.data_u8[1] = buffer[0];	// EFLG
-		can.data.data_u8[2] = buffer[1];	// TEC
-		can.data.data_u8[3] = buffer[2];	// REC
+		can_MPPT.status = CAN_ERROR;
+		can_MPPT.address = 0x0000;
+		can_MPPT.data.data_u8[0] = flags;		// CANINTF
+		can_MPPT.data.data_u8[1] = buffer[0];	// EFLG
+		can_MPPT.data.data_u8[2] = buffer[1];	// TEC
+		can_MPPT.data.data_u8[3] = buffer[2];	// REC
 		// Clear the IRQ flag
 		can_mod( CANINTF, MCP_IRQ_ERR, 0x00 );
 	}
@@ -181,12 +181,12 @@ void can_receive( void )
 		// Clear error flags
 		can_mod( EFLAG, buffer[0], 0x00 );	// Modify (to '0') all bits that were set
 		// Return error code, a blank address field, and error registers in data field
-		can.status = CAN_ERROR;
-		can.address = 0x0000;
-		can.data.data_u8[0] = flags;		// CANINTF
-		can.data.data_u8[1] = buffer[0];	// EFLG
-		can.data.data_u8[2] = buffer[1];	// TEC
-		can.data.data_u8[3] = buffer[2];	// REC
+		can_MPPT.status = CAN_ERROR;
+		can_MPPT.address = 0x0000;
+		can_MPPT.data.data_u8[0] = flags;		// CANINTF
+		can_MPPT.data.data_u8[1] = buffer[0];	// EFLG
+		can_MPPT.data.data_u8[2] = buffer[1];	// TEC
+		can_MPPT.data.data_u8[3] = buffer[2];	// REC
 		// Clear the IRQ flag
 		can_mod( CANINTF, MCP_IRQ_MERR, 0x00 );
 	}
@@ -198,27 +198,27 @@ void can_receive( void )
 		// check for Remote Frame requests and indicate the status correctly
 		if(( buffer[0] & MCP_RXB0_RTR ) == 0x00 ){
 			// We've received a standard data packet
-			can.status = CAN_OK;
+			can_MPPT.status = CAN_OK;
 			// Fill in the data
-			can.data.data_u8[0] = buffer[ 6];
-			can.data.data_u8[1] = buffer[ 7];
-			can.data.data_u8[2] = buffer[ 8];
-			can.data.data_u8[3] = buffer[ 9];
-			can.data.data_u8[4] = buffer[10];
-			can.data.data_u8[5] = buffer[11];
-			can.data.data_u8[6] = buffer[12];
+			can_MPPT.data.data_u8[0] = buffer[ 6];
+			can_MPPT.data.data_u8[1] = buffer[ 7];
+			can_MPPT.data.data_u8[2] = buffer[ 8];
+			can_MPPT.data.data_u8[3] = buffer[ 9];
+			can_MPPT.data.data_u8[4] = buffer[10];
+			can_MPPT.data.data_u8[5] = buffer[11];
+			can_MPPT.data.data_u8[6] = buffer[12];
 			can.data.data_u8[7] = buffer[13];
 		}
 		else{
 			// We've received a remote frame request
 			// Data is irrelevant with an RTR
-			can.status = CAN_RTR;
+			can_MPPT.status = CAN_RTR;
 		}
 		// Fill in the address
-		can.address = buffer[1];
-		can.address = can.address << 3;
+		can_MPPT.address = buffer[1];
+		can_MPPT.address = can_MPPT.address << 3;
 		buffer[2] = buffer[2] >> 5;
-		can.address = can.address | buffer[2];
+		can_MPPT.address = can_MPPT.address | buffer[2];
 		// Clear the IRQ flag
 		can_mod( CANINTF, MCP_IRQ_RXB0, 0x00 );
 	}
@@ -230,34 +230,34 @@ void can_receive( void )
 		// check for Remote Frame requests and indicate the status correctly
 		if(( buffer[0] & MCP_RXB1_RTR ) == 0x00 ){
 			// We've received a standard data packet
-			can.status = CAN_OK;
+			can_MPPT.status = CAN_OK;
 			// Fill in the data
-			can.data.data_u8[0] = buffer[ 6];
-			can.data.data_u8[1] = buffer[ 7];
-			can.data.data_u8[2] = buffer[ 8];
-			can.data.data_u8[3] = buffer[ 9];
-			can.data.data_u8[4] = buffer[10];
-			can.data.data_u8[5] = buffer[11];
-			can.data.data_u8[6] = buffer[12];
-			can.data.data_u8[7] = buffer[13];
+			can_MPPT.data.data_u8[0] = buffer[ 6];
+			can_MPPT.data.data_u8[1] = buffer[ 7];
+			can_MPPT.data.data_u8[2] = buffer[ 8];
+			can_MPPT.data.data_u8[3] = buffer[ 9];
+			can_MPPT.data.data_u8[4] = buffer[10];
+			can_MPPT.data.data_u8[5] = buffer[11];
+			can_MPPT.data.data_u8[6] = buffer[12];
+			can_MPPT.data.data_u8[7] = buffer[13];
 		}
 		else{
 			// We've received a remote frame request
 			// Data is irrelevant with an RTR
-			can.status = CAN_RTR;
+			can_MPPT.status = CAN_RTR;
 		}
 		// Fill in the address
-		can.address = buffer[1];
-		can.address = can.address << 3;
+		can_MPPT.address = buffer[1];
+		can_MPPT.address = can_MPPT.address << 3;
 		buffer[2] = buffer[2] >> 5;
-		can.address = can.address | buffer[2];
+		can_MPPT.address = can_MPPT.address | buffer[2];
 		// Clear the IRQ flag
 		can_mod( CANINTF, MCP_IRQ_RXB1, 0x00 );
 	}
 	else{
-		can.status = CAN_ERROR;
-		can.address = 0x0001;
-		can.data.data_u8[0] = flags;		// CANINTF
+		can_MPPT.status = CAN_ERROR;
+		can_MPPT.address = 0x0001;
+		can_MPPT.data.data_u8[0] = flags;		// CANINTF
 	}
 
 //added to tritum code to account for the fact that we could have more then one intrrupt pending at a given time
@@ -283,35 +283,35 @@ void can_receive( void )
  *	- Only modifies address information if it's different from what is already set up in CAN controller
  *	- Assumes constant 8-byte data length value
  */
-int can_transmit( void )
+int can_transmit_MPPT( void )
 {
 	static unsigned int buf_addr[3] = {0xFFFF, 0xFFFF, 0xFFFF};
 
 	// Fill data into buffer, it's used by any address
 	// Allow room at the start of the buffer for the address info if needed
-	buffer[ 5] = can.data.data_u8[0];
-	buffer[ 6] = can.data.data_u8[1];
-	buffer[ 7] = can.data.data_u8[2];
-	buffer[ 8] = can.data.data_u8[3];
-	buffer[ 9] = can.data.data_u8[4];
-	buffer[10] = can.data.data_u8[5];
-	buffer[11] = can.data.data_u8[6];
-	buffer[12] = can.data.data_u8[7];
+	buffer[ 5] = can_MPPT.data.data_u8[0];
+	buffer[ 6] = can_MPPT.data.data_u8[1];
+	buffer[ 7] = can_MPPT.data.data_u8[2];
+	buffer[ 8] = can_MPPT.data.data_u8[3];
+	buffer[ 9] = can_MPPT.data.data_u8[4];
+	buffer[10] = can_MPPT.data.data_u8[5];
+	buffer[11] = can_MPPT.data.data_u8[6];
+	buffer[12] = can_MPPT.data.data_u8[7];
 
 	// Check if the incoming address has already been configured in a mailbox
-	if( can.address == buf_addr[0] ){
+	if( can_MPPT.address == buf_addr[0] ){
 		// Mailbox 0 setup matches our new message
 		// Write to TX Buffer 0, start at data registers, and initiate transmission
 		can_write_tx( 0x01, &buffer[5] );
 		can_rts( 0 );
 	}
-	else if( can.address == buf_addr[1] ){
+	else if( can_MPPT.address == buf_addr[1] ){
 		// Mailbox 1 setup matches our new message
 		// Write to TX Buffer 1, start at data registers, and initiate transmission
 		can_write_tx( 0x03, &buffer[5] );
 		can_rts( 1 );
 	}
-	else if( can.address == buf_addr[2] ){
+	else if( can_MPPT.address == buf_addr[2] ){
 		// Mailbox 2 setup matches our new message
 		// Write to TX Buffer 2, start at data registers, and initiate transmission
 		can_write_tx( 0x05, &buffer[5] );
@@ -320,8 +320,8 @@ int can_transmit( void )
 	else{
 		// No matches in existing mailboxes
 		// No mailboxes already configured, so we'll need to load an address - set it up
-		buffer[0] = (unsigned char)(can.address >> 3);
-		buffer[1] = (unsigned char)(can.address << 5);
+		buffer[0] = (unsigned char)(can_MPPT.address >> 3);
+		buffer[1] = (unsigned char)(can_MPPT.address << 5);
 		buffer[2] = 0x00;						// EID8
 		buffer[3] = 0x00;						// EID0
 		buffer[4] = 0x08;						// DLC = 8 bytes
@@ -332,19 +332,19 @@ int can_transmit( void )
 			// Write to TX Buffer 0, start at address registers, and initiate transmission
 			can_write_tx( 0x00, &buffer[0] );
 			can_rts( 0 );
-			buf_addr[0] = can.address;
+			buf_addr[0] = can_MPPT.address;
 		}
 		else if( buf_addr[1] == 0xFFFF ){		// Mailbox 1 is free
 			// Write to TX Buffer 1, start at address registers, and initiate transmission
 			can_write_tx( 0x02, &buffer[0] );
 			can_rts( 1 );
-			buf_addr[1] = can.address;
+			buf_addr[1] = can_MPPT.address;
 		}
 		else if( buf_addr[2] == 0xFFFF ){		// Mailbox 2 is free
 			// Write to TX Buffer 2, start at address registers, and initiate transmission
 			can_write_tx( 0x04, &buffer[0] );
 			can_rts( 2 );
-			buf_addr[2] = can.address;
+			buf_addr[2] = can_MPPT.address;
 		}
 		else {
 
@@ -355,21 +355,21 @@ int can_transmit( void )
 				// Setup mailbox 0 and send the message
 				can_write_tx( 0x00, &buffer[0] );
 				can_rts( 0 );
-				buf_addr[0] = can.address;
+				buf_addr[0] = can_MPPT.address;
 			}
 			// Is it mailbox 1?
 			else if(( can_read_status() & 0x10 ) == 0x00) {
 				// Setup mailbox 1 and send the message
 				can_write_tx( 0x02, &buffer[0] );
 				can_rts( 1 );
-				buf_addr[1] = can.address;
+				buf_addr[1] = can_MPPT.address;
 			}
 			// Is it mailbox 2?
 			else if(( can_read_status() & 0x40 ) == 0x00) {
 				// Setup mailbox 2 and send the message
 				can_write_tx( 0x04, &buffer[0] );
 				can_rts( 2 );
-				buf_addr[2] = can.address;
+				buf_addr[2] = can_MPPT.address;
 			}
 		}
 	}
@@ -379,7 +379,7 @@ int can_transmit( void )
 /*
  * Read CAN Status flags
  */
-void can_flag_check( void )
+void can_flag_check_MPPT( void )
 {
 	extern unsigned char can_CANINTF, can_FLAGS[3];
 

@@ -27,32 +27,51 @@ int main(void) {
 
     _DINT();	/*Disable interrupts*/
 
-    for(i=0;i<=31;i++) adc_voltage[i]=0;
-    for(i=0;i<=31;i++) adc_stat[i]=0;
+    //for(i=0;i<=31;i++) adc_voltage[i]=0;
+    //for(i=0;i<=31;i++) adc_stat[i]=0;
 
     /*Initializations*/
     io_init();
     clock_init();
-    timerA_init();
-    timerB_init();
+    //timerA_init();
+    //timerB_init();
+    canspi_init();		// Initialize CAN SPI interface
+    can_init_MPPT();
+    can_init_MAIN();
 
-	adc_spi_init();	/*Setup tranmission to ADC*/
-	adc_init();	/*Initialize ADC*/
+	//adc_spi_init();	/*Setup tranmission to ADC*/
+	//adc_init();	/*Initialize ADC*/
 
 	WDTCTL = WDT_ARST_1000; /*Stop watchdog timer to prevent time out reset*/
     _EINT();	/*Enable interrupts*/
 
-	adc_selfcal();	/*Run a selfcal on all channels*/
-	adc_read_convert(0);
+	// Transmission off data to the MPPT
+	can.address = AC_CAN_BASE2;
+	can_MAIN.data.data_u16[3] = 0x0000; // to base address 0x600
+	can_MAIN.data.data_u16[2] = 0x0000;
+	can_MAIN.data.data_u16[1] = 0x0000;
+	can_MAIN.data.data_u16[0] = 0x0000; //Disable the MPPT
+	can_transmit_MAIN();
 
-	adc_voltage[0] = adc_in(0); /*Read in ADC channel reading*/
-	adc_voltage[1] = adc_in(1); /*Read in ADC channel reading*/
-	adc_voltage[2] = adc_in(2); /*Read in ADC channel reading*/
-	adc_voltage[3] = adc_in(3); /*Read in ADC channel reading*/
-	adc_voltage[4] = adc_in(4); /*Read in ADC channel reading*/
-	adc_voltage[5] = adc_in(5); /*Read in ADC channel reading*/
-	adc_voltage[6] = adc_in(6); /*Read in ADC channel reading*/
-	adc_voltage[7] = adc_in(7); /*Read in ADC channel reading*/
+	// Transmission on data to the MPPT
+	can.address = AC_CAN_BASE2;
+	can_MAIN.data.data_u16[3] = 0x0000; // to base address 0x600
+	can_MAIN.data.data_u16[2] = 0x0000;
+	can_MAIN.data.data_u16[1] = 0x0000;
+	can_MAIN.data.data_u16[0] = 0x0001; //Enable the MPPT
+	can_transmit_MAIN();
+
+//	adc_selfcal();	/*Run a selfcal on all channels*/
+//	adc_read_convert(0);
+//
+//	adc_voltage[0] = adc_in(0); /*Read in ADC channel reading*/
+//	adc_voltage[1] = adc_in(1); /*Read in ADC channel reading*/
+//	adc_voltage[2] = adc_in(2); /*Read in ADC channel reading*/
+//	adc_voltage[3] = adc_in(3); /*Read in ADC channel reading*/
+//	adc_voltage[4] = adc_in(4); /*Read in ADC channel reading*/
+//	adc_voltage[5] = adc_in(5); /*Read in ADC channel reading*/
+//	adc_voltage[6] = adc_in(6); /*Read in ADC channel reading*/
+//	adc_voltage[7] = adc_in(7); /*Read in ADC channel reading*/
 
 
 //	UnitTest test[1];

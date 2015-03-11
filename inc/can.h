@@ -32,15 +32,24 @@
 
  // Public Function prototypes - SPI for CAN
 extern 	void 			canspi_init( void );
-extern 	void			canspi_transmit( unsigned char data );
-extern 	unsigned char 	canspi_exchange( unsigned char data );
+
+extern 	void			canspi_transmit_MPPT( unsigned char data );
+extern 	unsigned char 	canspi_exchange_MPPT( unsigned char data );
+
+extern 	void			canspi_transmit_MAIN( unsigned char data );
+extern 	unsigned char 	canspi_exchange_MAIN( unsigned char data );
 
 // Public function prototypes
-extern void 			can_init( void );
-extern int	 			can_transmit( void );
-extern void 			can_receive( void );
-extern void 			can_flag_check( void );
+extern void 			can_init_MPPT( void );
+extern int	 			can_transmit_MPPT( void );
+extern void 			can_receive_MPPT( void );
+extern void 			can_flag_check_MPPT( void );
 extern void 			can_sendRTR( int );
+
+extern void 			can_init_MAIN( void );
+extern int	 			can_transmit_MAIN( void );
+extern void 			can_receive_MAIN( void );
+extern void 			can_flag_check_MAIN( void );
 
 
 // Public variables
@@ -73,7 +82,8 @@ typedef struct _can_variables
   group_64 			data;
 } can_variables;
 
-extern can_variables	can;
+extern can_variables	can_MAIN;
+extern can_variables	can_MPPT;
 
 // Private function prototypes
 void 					can_reset( void );
