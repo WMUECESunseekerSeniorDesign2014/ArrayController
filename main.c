@@ -5,16 +5,19 @@
  * @defgroup privRs232Vars Private Main RS-232 Variables
  */
 volatile int RX_INT_count = 0;
-char test_buffer_PC[60];
+char tx_PC_buffer[60];
+char rx_PC_buffer[60];
 char *putPC_ptr, *getPC_ptr;
 bool put_status_PC, get_status_PC;
-bool AC2PC_RX_flag = FALSE;
+bool Prompt_Active = FALSE;
 /**@}*/
+
 
 /*
  * main.c
  */
 int main(void) {
+	UnitTest test[2];
     WDTCTL = WDTPW | WDTHOLD;	// Stop watchdog timer
 
     _DINT();	/*Disable interrupts*/
@@ -25,18 +28,20 @@ int main(void) {
     timerA_init();
     timerB_init();
 
+    // Initialize the RS-232 interface.
+    AC2PC_init();
+    UCA0IE |= UCRXIE; // Enable interrupts on the RX line.
 
     _EINT();	/*Enable interrupts*/
 
-//    test[0].PreDelay = DELAY_0;
-//    test[0].Test = BLINKY;
-//    test[0].PostDelay = DELAY_FOREVER;
-//
-//    ExecuteTests(test, 1);
+	// No interrupt has come through yet, so mark this to FALSE initially.
+	put_status_PC = FALSE;
+	Prompt_Active = FALSE;
 
-    while(1);
+    while(1) {
+    }
 	
-	//return 0;
+	return 0;
 }
 
 /**
@@ -57,6 +62,9 @@ extern void Delay(unsigned int delayConstant) {
 			break;
 		case DELAY_1000:
 			__delay_cycles(DELAY_1000);
+			break;
+		case DELAY_3750:
+			__delay_cycles(DELAY_3750);
 			break;
 		case DELAY_FOREVER: // If DELAY_FOREVER is passed in, don't do anything!
 			break;
@@ -192,48 +200,81 @@ void timerB_init( void )
 	TBCTL |= MC_1;	/*Set timer to 'up' count mode*/
 }
 
+void AC2PC_Interpret(void) {
+	extern char *getPC_ptr, *putPC_ptr;
+	extern bool Prompt_Active, put_status_PC;
+
+	switch((*getPC_ptr) - '0') { // Hackish way to tell MCU that *getPC_ptr is a number.
+		case PROMPT_EXIT:
+			/** @todo Implement exiting the prompt. */
+			Prompt_Active = FALSE;
+			putPC_ptr = &RS232NotActive[0];
+			put_status_PC = TRUE;
+			break;
+		case PROMPT_BATT_DUMP:
+			/** @todo Dump battery stats. */
+			break;
+		case PROMPT_SHUNT_DUMP:
+			/** @todo Dump shunt stats. */
+			break;
+		case PROMPT_MPPT_DUMP:
+			/** @todo Dump MPPT stats. */
+			break;
+		case PROMPT_THERM_DUMP:
+			/** @todo Dump thermistor temperatures. */
+			break;
+		case PROMPT_MPPT_SWITCH_DUMP:
+			/** @todo Dump status of MPPT switches. */
+			break;
+		default:
+			/** @todo Display an error to the user. Maybe error light? */
+			break;
+	}
+	UCA0TXBUF = *putPC_ptr++;
+	UCA0IE |= UCTXIE;
+}
+
 /*
  * Interrupts
  */
 /*
 * BPS2PC Interrupt Service Routine
 */
-	#pragma vector=USCI_A3_VECTOR
-__interrupt void USCI_A3_ISR(void)
+#pragma vector=USCI_A0_VECTOR
+__interrupt void USCI_A0_ISR(void)
 {
 	extern char *putPC_ptr, *getPC_ptr;
-	extern bool put_status_PC, get_status_PC, AC2PC_RX_flag;
+	extern bool put_status_PC, get_status_PC, Prompt_Active;
 	char ch;
 
-    switch(__even_in_range(UCA3IV,16))
+    switch(__even_in_range(UCA0IV,16))
     {
     case 0:		                              // Vector 0 - no interrupt
-      break;
+    	break;
     case 2:                                   // Data Received - UCRXIFG
-          ch = UCA3RXBUF;
-          *getPC_ptr++ = ch;
-          if (ch == 0x0D){
-             *getPC_ptr = 0;
-             getPC_ptr = &test_buffer_PC[0];
-             AC2PC_RX_flag = TRUE;
-		     get_status_PC = FALSE;
-          }
-          else
-          {
-		     get_status_PC = TRUE;
-         }
-     break;
+    	ch = UCA0RXBUF;
+
+    	if (ch == 0x0D && Prompt_Active == FALSE) { // Activate prompt.
+    		Prompt_Active = TRUE;
+    		putPC_ptr = &RS232Active[0];
+    		UCA0TXBUF = *putPC_ptr++;
+    		UCA0IE |= UCTXIE;
+    	} else if (Prompt_Active == TRUE && put_status_PC == FALSE) { // Prevent too many commands coming in at once.
+    		getPC_ptr = &ch;
+    		AC2PC_Interpret(); // Interpret command.
+    	} else {
+    		// Toggle error light?
+    	}
+		break;
     case 4:                                   // TX Buffer Empty - UCTXIFG
-      ch = *putPC_ptr++;
-	  if (ch == '\0')
-	  {
-	  	UCA3IE &= ~UCTXIE;
-		put_status_PC = FALSE;
-	  }
-	  else
-	  {
-		UCA3TXBUF = ch;
-	  }
+    	ch = *putPC_ptr++;
+
+    	if (ch == '\0') {
+    		UCA0IE &= ~UCTXIE;
+    		put_status_PC = FALSE;
+    	} else {
+    		UCA0TXBUF = ch;
+    	}
       break;
     default:
       break;

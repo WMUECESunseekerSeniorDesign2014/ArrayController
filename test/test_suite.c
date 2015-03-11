@@ -7,7 +7,6 @@
 
 #include <stdio.h>
 #include "../inc/main.h"
-#include "../inc/test/test_suite.h"
 
 /**
  * A simple test blinking the LED multiple times.
@@ -24,11 +23,19 @@ static void Blinky() {
 }
 
 /**
- * Read and write to the PC using the RS-232 controller on the
+ * Write to the PC using the RS-232 controller on the
  * Array Controller.
  */
-static void Rs232_PC() {
-	/// @todo Implement.
+static void Rs232_PC_Puts() {
+}
+
+
+static void Rs232_PC_Gets() {
+//	char receiveData[15];
+//	getPC_ptr = &receiveData[0];
+//	get_status_PC = FALSE;
+//
+//	while(AC2PC_RX_flag == FALSE); // Wait for data transfer.
 }
 
 /**
@@ -39,13 +46,13 @@ static void Adc() {
 
 	signed long adc_channel_val = 0;
 
-	adc_spi_init();	/*Setup tranmission to ADC*/
-	adc_init();	/*Initialize ADC*/
-	adc_selfcal();	/*Run a selfcal on all channels*/
-	adc_read_convert(0);
-
-	adc_channel_val = adc_in(2); /*Read in ADC channel 2 reading*/
-	printf("%ld", adc_channel_val);
+//	adc_spi_init();	/*Setup tranmission to ADC*/
+//	adc_init();	/*Initialize ADC*/
+//	adc_selfcal();	/*Run a selfcal on all channels*/
+//	adc_read_convert(0);
+//
+//	adc_channel_val = adc_in(2); /*Read in ADC channel 2 reading*/
+//	printf("%ld", adc_channel_val);
 }
 
 /**
@@ -101,8 +108,11 @@ extern void ExecuteTests(UnitTest tests[], int numOfTests) {
 			case BLINKY:
 				Blinky();
 				break;
-			case RS232_PC:
-				Rs232_PC();
+			case RS232_PC_GETS:
+				Rs232_PC_Gets();
+				break;
+			case RS232_PC_PUTS:
+				Rs232_PC_Puts();
 				break;
 			case ADC:
 				Adc();

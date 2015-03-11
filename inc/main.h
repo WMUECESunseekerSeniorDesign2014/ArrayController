@@ -5,12 +5,16 @@
  */
 #ifndef MAIN_H_
 #define MAIN_H_
+
 /**
 * @enum bool
 *
 * An enumeration defining a boolean (bool) type.
 */
 typedef enum { TRUE, FALSE } bool;
+
+#include "./test/test_suite.h"
+#include "./rs232.h"
 
 /**
  * Function Prototypes
