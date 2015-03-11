@@ -90,6 +90,9 @@ void 					can_mod( unsigned char address, unsigned char mask, unsigned char data
 #define can_select		P10OUT &= ~CAN_CSn
 #define can_deselect	P10OUT |= CAN_CSn
 
+#define can_select_2		P5OUT &= ~CAN_CSn2
+#define can_deselect_2	P5OUT |= CAN_CSn2
+
 // Device serial number
 #define DEVICE_SERIAL	0x00000001
 

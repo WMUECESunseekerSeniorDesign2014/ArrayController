@@ -134,8 +134,8 @@ void io_init( void )
 	P3OUT = 0x00;	/*Set outputs to ground*/
    	P3DIR = ADC_DIN | ADC_SCLK | TX_EXT | CAN_SCLK2 | P3_UNUSED;	/*Setup output pins*/
    	P3DIR &= ~(ADC_DOUT | RX_EXT);
+   	P3OUT = CAN_SCLK2;
     P3SEL = ADC_DIN | ADC_DOUT |ADC_SCLK | TX_EXT | RX_EXT | CAN_SCLK2;	/*Setup pins for secondary function*/
-    P3OUT = CAN_SCLK2;
     Delay(DELAY_100);
 
     /*Port 4 Initialization*/
