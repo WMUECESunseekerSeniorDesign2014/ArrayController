@@ -66,19 +66,19 @@ unsigned char 			buffer[16];
 void can_init_MAIN( void )
 {
 	// Set up reset and clocking
-	can_reset();
-	can_mod( CANCTRL, 0x03, 0x03 );			// CANCTRL register, modify lower 2 bits, CLK = /8 - 0x02 changes it to CLK /4 - 250 kbps
+	can_reset_2();
+	can_mod_2( CANCTRL, 0x03, 0x02 );			// CANCTRL register, modify lower 2 bits, CLK /4 - 4 MHz
 
 	// Set up bit timing & interrupts
 	buffer[0] = 0x02;						// CNF3 register: PHSEG2 = 3Tq, No wakeup, CLKOUT = CLK
 	buffer[1] = 0xC9;						// CNF2 register: set PHSEG2 in CNF3, Triple sample, PHSEG1= 2Tq, PROP = 2Tq
 //	buffer[2] = 0x00;						// CNF1 register: SJW = 1Tq, BRP = 0 > 1Mbps
-	buffer[2] = 0x03;						// CNF1 register: SJW = 1Tq, BRP = 3 > 125 kbps
+	buffer[2] = 0x03;						// CNF1 register: SJW = 1Tq, BRP = 3 > 250 kbps
 	buffer[3] = 0xA3;						// CANINTE register: enable MERRE, ERROR, RX0 & RX1 interrupts on IRQ pin
 //	buffer[3] = 0x23;						// CANINTE register: enable ERROR, RX0 & RX1 interrupts on IRQ pin
 	buffer[4] = 0x00;						// CANINTF register: clear all IRQ flags
 	buffer[5] = 0x00;						// EFLG register: clear all user-changable error flags
-	can_write( CNF3, &buffer[0], 6);		// Write to registers
+	can_write_2( CNF3, &buffer[0], 6);		// Write to registers
 
 	// Set up receive filtering & masks
 	// RXF0 - Buffer 0
@@ -96,7 +96,7 @@ void can_init_MAIN( void )
 	buffer[ 9] = 0x00;	//(unsigned char)((AC_CAN_BASE1) << 5);
 	buffer[10] = 0x00;
 	buffer[11] = 0x00;
-	can_write( RXF0SIDH, &buffer[0], 12 );
+	can_write_2( RXF0SIDH, &buffer[0], 12 );
 
 	// RXF3 - Buffer 1
 	buffer[ 0] = 0x00;
@@ -113,7 +113,7 @@ void can_init_MAIN( void )
 	buffer[ 9] = 0x00;
 	buffer[10] = 0x00;
 	buffer[11] = 0x00;
-	can_write( RXF3SIDH, &buffer[0], 12 );
+	can_write_2( RXF3SIDH, &buffer[0], 12 );
 
 	// RXM0 - Buffer 0
 	buffer[ 0] = 0xFF;						// Match entire 11 bit ID (ID is left-justified in 32-bit mask register)
@@ -125,21 +125,21 @@ void can_init_MAIN( void )
 	buffer[ 5] = 0x00;
 	buffer[ 6] = 0x00;
 	buffer[ 7] = 0x00;
-	can_write( RXM0SIDH, &buffer[0], 8 );
+	can_write_2( RXM0SIDH, &buffer[0], 8 );
 
 	buffer[0] = 0x04;	//enable filters & rollover
-    	can_write(RXB0CTRL, &buffer[0], 1);
+    	can_write_2(RXB0CTRL, &buffer[0], 1);
     	buffer[0] = 0x04;	//enable filters
-    	can_write(RXB1CTRL, &buffer[0], 1);
+    	can_write_2(RXB1CTRL, &buffer[0], 1);
 
     	buffer[0] = 0x0F;	//enable RX0BINT and RX1BINT pins
-    	can_write(BFPCTRL, &buffer[0], 1);
+    	can_write_2(BFPCTRL, &buffer[0], 1);
 
 	// Switch out of config mode into normal operating mode
-//	can_mod( CANCTRL, 0x08, 0x08 );			// CANCTRL register,One-SHot Mode for Transmission
+//	can_mod_2( CANCTRL, 0x08, 0x08 );			// CANCTRL register,One-SHot Mode for Transmission
 
 	// Switch out of config mode into normal operating mode
-	can_mod( CANCTRL, 0xE0, 0x00 );			// CANCTRL register, modify upper 3 bits, mode = Normal
+	can_mod_2( CANCTRL, 0xE0, 0x00 );			// CANCTRL register, modify upper 3 bits, mode = Normal
 }
 
 /*
@@ -156,30 +156,14 @@ void can_receive_MAIN( void )
 	unsigned char flags;
 
 	// Read out the interrupt flags register
-	can_read( CANINTF, &flags, 1 );
+	can_read_2( CANINTF, &flags, 1 );
 	// Check for errors
 	if(( flags & MCP_IRQ_ERR ) != 0x00 ){
 		// Read error flags and counters
-		can_read( EFLAG, &buffer[0], 1 );
-		can_read( TEC, &buffer[1], 2 );
+		can_read_2( EFLAG, &buffer[0], 1 );
+		can_read_2( TEC, &buffer[1], 2 );
 		// Clear error flags
-		can_mod( EFLAG, buffer[0], 0x00 );	// Modify (to '0') all bits that were set
-		// Return error code, a blank address field, and error registers in data field
-		can_MPPT.status = CAN_ERROR;
-		can_MAIN.address = 0x0000;
-		can_MAIN.data.data_u8[0] = flags;		// CANINTF
-		can_MAIN.data.data_u8[1] = buffer[0];	// EFLG
-		can_MAIN.data.data_u8[2] = buffer[1];	// TEC
-		can_MAIN.data.data_u8[3] = buffer[2];	// REC
-		// Clear the IRQ flag
-		can_mod( CANINTF, MCP_IRQ_ERR, 0x00 );
-	}
-	if(( flags & MCP_IRQ_MERR) != 0x00 ){
-		// Read error flags and counters
-		can_read( EFLAG, &buffer[0], 1 );
-		can_read( TEC, &buffer[1], 2 );
-		// Clear error flags
-		can_mod( EFLAG, buffer[0], 0x00 );	// Modify (to '0') all bits that were set
+		can_mod_2( EFLAG, buffer[0], 0x00 );	// Modify (to '0') all bits that were set
 		// Return error code, a blank address field, and error registers in data field
 		can_MAIN.status = CAN_ERROR;
 		can_MAIN.address = 0x0000;
@@ -188,12 +172,28 @@ void can_receive_MAIN( void )
 		can_MAIN.data.data_u8[2] = buffer[1];	// TEC
 		can_MAIN.data.data_u8[3] = buffer[2];	// REC
 		// Clear the IRQ flag
-		can_mod( CANINTF, MCP_IRQ_MERR, 0x00 );
+		can_mod_2( CANINTF, MCP_IRQ_ERR, 0x00 );
+	}
+	if(( flags & MCP_IRQ_MERR) != 0x00 ){
+		// Read error flags and counters
+		can_read_2( EFLAG, &buffer[0], 1 );
+		can_read_2( TEC, &buffer[1], 2 );
+		// Clear error flags
+		can_mod_2( EFLAG, buffer[0], 0x00 );	// Modify (to '0') all bits that were set
+		// Return error code, a blank address field, and error registers in data field
+		can_MAIN.status = CAN_ERROR;
+		can_MAIN.address = 0x0000;
+		can_MAIN.data.data_u8[0] = flags;		// CANINTF
+		can_MAIN.data.data_u8[1] = buffer[0];	// EFLG
+		can_MAIN.data.data_u8[2] = buffer[1];	// TEC
+		can_MAIN.data.data_u8[3] = buffer[2];	// REC
+		// Clear the IRQ flag
+		can_mod_2( CANINTF, MCP_IRQ_MERR, 0x00 );
 	}
 	// No error, check for received messages, buffer 0
 	else if(( flags & MCP_IRQ_RXB0 ) != 0x00 ){
 		// Read in the info, address & message data
-		can_read( RXB0CTRL, &buffer[0], 14 );
+		can_read_2( RXB0CTRL, &buffer[0], 14 );
 		// Fill out return structure
 		// check for Remote Frame requests and indicate the status correctly
 		if(( buffer[0] & MCP_RXB0_RTR ) == 0x00 ){
@@ -220,12 +220,12 @@ void can_receive_MAIN( void )
 		buffer[2] = buffer[2] >> 5;
 		can_MAIN.address = can_MAIN.address | buffer[2];
 		// Clear the IRQ flag
-		can_mod( CANINTF, MCP_IRQ_RXB0, 0x00 );
+		can_mod_2( CANINTF, MCP_IRQ_RXB0, 0x00 );
 	}
 	// No error, check for received messages, buffer 1
 	else if(( flags & MCP_IRQ_RXB1 ) != 0x00 ){
 		// Read in the info, address & message data
-		can_read( RXB1CTRL, &buffer[0], 14 );
+		can_read_2( RXB1CTRL, &buffer[0], 14 );
 		// Fill out return structure
 		// check for Remote Frame requests and indicate the status correctly
 		if(( buffer[0] & MCP_RXB1_RTR ) == 0x00 ){
@@ -252,7 +252,7 @@ void can_receive_MAIN( void )
 		buffer[2] = buffer[2] >> 5;
 		can_MAIN.address = can_MAIN.address | buffer[2];
 		// Clear the IRQ flag
-		can_mod( CANINTF, MCP_IRQ_RXB1, 0x00 );
+		can_mod_2( CANINTF, MCP_IRQ_RXB1, 0x00 );
 	}
 	else{
 		can_MAIN.status = CAN_ERROR;
@@ -262,15 +262,15 @@ void can_receive_MAIN( void )
 
 //added to tritum code to account for the fact that we could have more then one intrrupt pending at a given time
 //NOTE: YOU MUST CLEAR THE MAIN_MODE STATUS BEFORE ENTERING THIS FUNCTION OR YOU WILL CLEAR THE RETURN FLAG
-  can_read(CANINTF, &flags, 1 );
+  can_read_2(CANINTF, &flags, 1 );
   if((( flags & MCP_IRQ_ERR ) ||( flags & MCP_IRQ_MERR )) != 0x00 )
   {
-    can_read(EFLAG, &buffer[0], 1 );
-    can_read(TEC, &buffer[1], 2 );
+    can_read_2(EFLAG, &buffer[0], 1 );
+    can_read_2(TEC, &buffer[1], 2 );
     // Clear error flags
-    can_mod(EFLAG, buffer[0], 0x00 );	// Modify (to '0') all bits that were set
+    can_mod_2(EFLAG, buffer[0], 0x00 );	// Modify (to '0') all bits that were set
     // Clear the IRQ flag
-    can_mod(CANINTF, MCP_IRQ_ERR | MCP_IRQ_MERR, 0x00 );
+    can_mod_2(CANINTF, MCP_IRQ_ERR | MCP_IRQ_MERR, 0x00 );
   }
 
 }
@@ -302,20 +302,20 @@ int can_transmit_MAIN( void )
 	if( can_MAIN.address == buf_addr[0] ){
 		// Mailbox 0 setup matches our new message
 		// Write to TX Buffer 0, start at data registers, and initiate transmission
-		can_write_tx( 0x01, &buffer[5] );
-		can_rts( 0 );
+		can_write_tx_2( 0x01, &buffer[5] );
+		can_rts_2( 0 );
 	}
 	else if( can_MAIN.address == buf_addr[1] ){
 		// Mailbox 1 setup matches our new message
 		// Write to TX Buffer 1, start at data registers, and initiate transmission
-		can_write_tx( 0x03, &buffer[5] );
-		can_rts( 1 );
+		can_write_tx_2( 0x03, &buffer[5] );
+		can_rts_2( 1 );
 	}
 	else if( can_MAIN.address == buf_addr[2] ){
 		// Mailbox 2 setup matches our new message
 		// Write to TX Buffer 2, start at data registers, and initiate transmission
-		can_write_tx( 0x05, &buffer[5] );
-		can_rts( 2 );
+		can_write_tx_2( 0x05, &buffer[5] );
+		can_rts_2( 2 );
 	}
 	else{
 		// No matches in existing mailboxes
@@ -330,45 +330,45 @@ int can_transmit_MAIN( void )
 		// Otherwise, find a non-busy mailbox and set it up with our new address
 		if( buf_addr[0] == 0xFFFF ){			// Mailbox 0 is free
 			// Write to TX Buffer 0, start at address registers, and initiate transmission
-			can_write_tx( 0x00, &buffer[0] );
-			can_rts( 0 );
+			can_write_tx_2( 0x00, &buffer[0] );
+			can_rts_2( 0 );
 			buf_addr[0] = can_MAIN.address;
 		}
 		else if( buf_addr[1] == 0xFFFF ){		// Mailbox 1 is free
 			// Write to TX Buffer 1, start at address registers, and initiate transmission
-			can_write_tx( 0x02, &buffer[0] );
-			can_rts( 1 );
+			can_write_tx_2( 0x02, &buffer[0] );
+			can_rts_2( 1 );
 			buf_addr[1] = can_MAIN.address;
 		}
 		else if( buf_addr[2] == 0xFFFF ){		// Mailbox 2 is free
 			// Write to TX Buffer 2, start at address registers, and initiate transmission
-			can_write_tx( 0x04, &buffer[0] );
-			can_rts( 2 );
+			can_write_tx_2( 0x04, &buffer[0] );
+			can_rts_2( 2 );
 			buf_addr[2] = can_MAIN.address;
 		}
 		else {
 
 			// No mailboxes free, wait until at least one is not busy
-			while(( can_read_status() & 0x54 ) == 0x54);
+			while(( can_read_status_2() & 0x54 ) == 0x54);
 			// Is it mailbox 0?
-			if(( can_read_status() & 0x04 ) == 0x00) {
+			if(( can_read_status_2() & 0x04 ) == 0x00) {
 				// Setup mailbox 0 and send the message
-				can_write_tx( 0x00, &buffer[0] );
-				can_rts( 0 );
+				can_write_tx_2( 0x00, &buffer[0] );
+				can_rts_2( 0 );
 				buf_addr[0] = can_MAIN.address;
 			}
 			// Is it mailbox 1?
-			else if(( can_read_status() & 0x10 ) == 0x00) {
+			else if(( can_read_status_2() & 0x10 ) == 0x00) {
 				// Setup mailbox 1 and send the message
-				can_write_tx( 0x02, &buffer[0] );
-				can_rts( 1 );
+				can_write_tx_2( 0x02, &buffer[0] );
+				can_rts_2( 1 );
 				buf_addr[1] = can_MAIN.address;
 			}
 			// Is it mailbox 2?
-			else if(( can_read_status() & 0x40 ) == 0x00) {
+			else if(( can_read_status_2() & 0x40 ) == 0x00) {
 				// Setup mailbox 2 and send the message
-				can_write_tx( 0x04, &buffer[0] );
-				can_rts( 2 );
+				can_write_tx_2( 0x04, &buffer[0] );
+				can_rts_2( 2 );
 				buf_addr[2] = can_MAIN.address;
 			}
 		}
@@ -383,10 +383,10 @@ void can_flag_check_MAIN( void )
 {
 	extern unsigned char can_CANINTF, can_FLAGS[3];
 
-	can_read( CANINTF, &can_CANINTF, 1 );
+	can_read_2( CANINTF, &can_CANINTF, 1 );
 	// Check for errors
-	can_read( EFLAG, &can_FLAGS[0], 1 );
-	can_read( TEC, &can_FLAGS[1], 2 );
+	can_read_2( EFLAG, &can_FLAGS[0], 1 );
+	can_read_2( TEC, &can_FLAGS[1], 2 );
 }
 
 /**************************************************************************************************
@@ -397,7 +397,7 @@ void can_flag_check_MAIN( void )
  * Resets MCP2515 CAN controller via SPI port
  *	- SPI port must be already initialised
  */
-void can_reset( void )
+void can_reset_2( void )
 {
 	can_select_2;
 	canspi_transmit_MAIN( MCP_RESET );
@@ -408,7 +408,7 @@ void can_reset( void )
  * Reads data bytes from the MCP2515
  *	- Pass in starting address, pointer to array of bytes for return data, and number of bytes to read
  */
-void can_read( unsigned char address, unsigned char *ptr, unsigned char bytes )
+void can_read_2( unsigned char address, unsigned char *ptr, unsigned char bytes )
 {
 	unsigned char i;
 
@@ -425,7 +425,7 @@ void can_read( unsigned char address, unsigned char *ptr, unsigned char bytes )
  *		- For starting at data, returns 8 bytes
  *		- For starting at address, returns 13 bytes
  */
-void can_read_rx( unsigned char address, unsigned char *ptr )
+void can_read_rx_2( unsigned char address, unsigned char *ptr )
 {
 	unsigned char i;
 
@@ -453,7 +453,7 @@ void can_read_rx( unsigned char address, unsigned char *ptr )
  * Writes data bytes to the MCP2515
  *	- Pass in starting address, pointer to array of bytes, and number of bytes to write
  */
-void can_write( unsigned char address, unsigned char *ptr, unsigned char bytes )
+void can_write_2( unsigned char address, unsigned char *ptr, unsigned char bytes )
 {
 	unsigned char i;
 
@@ -473,7 +473,7 @@ void can_write( unsigned char address, unsigned char *ptr, unsigned char bytes )
  *		- For starting at data, accepts 8 bytes
  *		- For starting at address, accepts 13 bytes
  */
-void can_write_tx( unsigned char address, unsigned char *ptr )
+void can_write_tx_2( unsigned char address, unsigned char *ptr )
 {
 	unsigned char i;
 
@@ -500,7 +500,7 @@ void can_write_tx( unsigned char address, unsigned char *ptr )
  * Request to send selected transmit buffer
  *	- Pass in address of buffer to transmit: 0, 1 or 2
  */
-void can_rts( unsigned char address )
+void can_rts_2( unsigned char address )
 {
 	unsigned char i;
 
@@ -519,7 +519,7 @@ void can_rts( unsigned char address )
 /*
  * Reads MCP2515 status register
  */
-unsigned char can_read_status( void )
+unsigned char can_read_status_2( void )
 {
 	unsigned char status;
 
@@ -533,7 +533,7 @@ unsigned char can_read_status( void )
 /*
  * Reads MCP2515 RX status (filter match) register
  */
-unsigned char can_read_filter( void )
+unsigned char can_read_filter_2( void )
 {
 	unsigned char status;
 
@@ -548,7 +548,7 @@ unsigned char can_read_filter( void )
  * Modifies selected register in MCP2515
  *	- Pass in register to be modified, bit mask, and bit data
  */
-void can_mod( unsigned char address, unsigned char mask, unsigned char data )
+void can_mod_2( unsigned char address, unsigned char mask, unsigned char data )
 {
 	can_select_2;
 	canspi_transmit_MAIN( MCP_MODIFY );

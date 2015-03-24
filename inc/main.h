@@ -1,5 +1,6 @@
 #include<msp430x54xa.h>
-
+#include "./can.h"
+#include "./adc.h"
 /**
  * @note Include guard to prevent recursive inclusion.
  */

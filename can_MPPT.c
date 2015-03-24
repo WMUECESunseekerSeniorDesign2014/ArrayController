@@ -67,13 +67,13 @@ void can_init_MPPT( void )
 {
 	// Set up reset and clocking
 	can_reset();
-	can_mod( CANCTRL, 0x03, 0x03 );			// CANCTRL register, modify lower 2 bits, CLK = /8 - 0x02 changes it to CLK /4 - 250 kbps
+	can_mod( CANCTRL, 0x03, 0x02 );			// CANCTRL register, modify lower 2 bits, CLK = /4
 
 	// Set up bit timing & interrupts
 	buffer[0] = 0x02;						// CNF3 register: PHSEG2 = 3Tq, No wakeup, CLKOUT = CLK
 	buffer[1] = 0xC9;						// CNF2 register: set PHSEG2 in CNF3, Triple sample, PHSEG1= 2Tq, PROP = 2Tq
 //	buffer[2] = 0x00;						// CNF1 register: SJW = 1Tq, BRP = 0 > 1Mbps
-	buffer[2] = 0x03;						// CNF1 register: SJW = 1Tq, BRP = 3 > 125 kbps
+	buffer[2] = 0x07;						// CNF1 register: SJW = 1Tq, BRP = 7 > 125 kbps
 	buffer[3] = 0xA3;						// CANINTE register: enable MERRE, ERROR, RX0 & RX1 interrupts on IRQ pin
 //	buffer[3] = 0x23;						// CANINTE register: enable ERROR, RX0 & RX1 interrupts on IRQ pin
 	buffer[4] = 0x00;						// CANINTF register: clear all IRQ flags
@@ -207,7 +207,7 @@ void can_receive_MPPT( void )
 			can_MPPT.data.data_u8[4] = buffer[10];
 			can_MPPT.data.data_u8[5] = buffer[11];
 			can_MPPT.data.data_u8[6] = buffer[12];
-			can.data.data_u8[7] = buffer[13];
+			can_MPPT.data.data_u8[7] = buffer[13];
 		}
 		else{
 			// We've received a remote frame request

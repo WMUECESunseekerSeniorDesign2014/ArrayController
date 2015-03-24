@@ -96,11 +96,21 @@ unsigned char 			can_read_status( void );
 unsigned char 			can_read_filter( void );
 void 					can_mod( unsigned char address, unsigned char mask, unsigned char data );
 
+void 					can_reset_2( void );
+void 					can_read_2( unsigned char address, unsigned char *ptr, unsigned char bytes );
+void 					can_read_rx_2( unsigned char address, unsigned char *ptr );
+void 					can_write_2( unsigned char address, unsigned char *ptr, unsigned char bytes );
+void 					can_write_tx_2( unsigned char address, unsigned char *ptr );
+void 					can_rts_2( unsigned char address );
+unsigned char 			can_read_status_2( void );
+unsigned char 			can_read_filter_2( void );
+void 					can_mod_2( unsigned char address, unsigned char mask, unsigned char data );
+
 // SPI port interface macros
 #define can_select		P10OUT &= ~CAN_CSn
 #define can_deselect	P10OUT |= CAN_CSn
 
-#define can_select_2		P5OUT &= ~CAN_CSn2
+#define can_select_2	P5OUT &= ~CAN_CSn2
 #define can_deselect_2	P5OUT |= CAN_CSn2
 
 // Device serial number
