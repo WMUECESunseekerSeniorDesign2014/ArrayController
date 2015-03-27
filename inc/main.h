@@ -21,12 +21,12 @@ typedef enum { MPPT_ON, MPPT_OFF } MPPTState;
 /**
  * @enum MainState
  * Describes the main state that the microcontroller is in.
- *  * INIT: The microcontroller is initializing its peripherals.
- *  * IDLE: The microcontroller is waiting for the 504 signal.
- *  *  ADC: The microcontroller is performing an action with the ADC.
- *  *  CAN: The microcontroller is performing an action with the CAN controllers.
+ *  *     INIT: The system is initializing its peripherals.
+ *  *     IDLE: The system is waiting for the 504 signal.
+ *  *  RUNNING: The car is running.
+ *  * CHARGING: The car is not being used in the race but the MPPTs are still allowed to charge the batteries..
  */
-typedef enum { INIT, IDLE, ADC, CAN } MainState;
+typedef enum { INIT, IDLE, RUNNING, CHARGING } CarState;
 
 /**
  * @enum ADCState
