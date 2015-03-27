@@ -82,86 +82,6 @@ int main(void) {
 	adc_voltage[6] = adc_in(6); /*Read in ADC channel reading*/
 	adc_voltage[7] = adc_in(7); /*Read in ADC channel reading*/
 
-	//MPPT CAN RTR Send
-    can_MPPT.address = AC_CAN_BASE1;
-	can_sendRTR(0); //Send RTR request
-	can_transmit_MPPT();
-	can_sendRTR(1);
-	Delay(DELAY_3750);
-
-	//Can Transmit Calls
-    can_MPPT.address = AC_CAN_BASE2;
-    can_MPPT.data.data_u16[3] = 0x0000; // to base address 0x600
-    can_MPPT.data.data_u16[2] = 0x0000;
-    can_MPPT.data.data_u16[1] = 0x0000;
-    can_MPPT.data.data_u16[0] = 0x0001; //Enable the MPPT
-    can_transmit_MPPT();
-    Delay(DELAY_3750);
-
-    can_MPPT.address = AC_CAN_BASE2;
-	can_MPPT.data.data_u16[3] = 0x0000; // to base address 0x600
-	can_MPPT.data.data_u16[2] = 0x0000;
-	can_MPPT.data.data_u16[1] = 0x0000;
-	can_MPPT.data.data_u16[0] = 0x0001; //Disable the MPPT
-	can_transmit_MPPT();
-	Delay(DELAY_3750);
-
-	can_MAIN.address = AC_CAN_BASE2;
-	can_MAIN.data.data_u16[3] = 0x0000; // to base address 0x600
-	can_MAIN.data.data_u16[2] = 0x0000;
-	can_MAIN.data.data_u16[1] = 0x0000;
-	can_MAIN.data.data_u16[0] = 0x0000; //Enable the MPPT
-	can_transmit_MAIN();
-	Delay(DELAY_3750);
-
-
-	//CAN Recieve (Polling)
-
-	/*Check for CAN packet reception on CAN_MPPT (Polling)*/
-	if((P1IN & CAN_INTn0) == 0x00)
-	{
-	   //IRQ flag is set, so run the receive routine to either get the message, or the error
-	   can_receive_MPPT();
-	   // Check the status
-	   // Modification: case based updating of actual current and velocity added
-	   // - messages received at 5 times per second 16/(2*5) = 1.6 sec smoothing
-	   if(can_MPPT.status == CAN_OK)
-	   {
-	    	P4OUT ^= LED2;
-	   }
-	   if(can_MPPT.status == CAN_RTR)
-	   {
-	    	//do nothing
-	   }
-	   if(can_MPPT.status == CAN_ERROR)
-	   {
-	    	P4OUT ^= LED3;
-	   }
-	 }
-
-   	/*Check for CAN packet reception on CAN_MAIN (Polling)*/
-    	if((P1IN & CAN_INTn1) == 0x00)
-    	{
-    		// IRQ flag is set, so run the receive routine to either get the message, or the error
-    		can_receive_MAIN();
-    		// Check the status
-    		// Modification: case based updating of actual current and velocity added
-    		// - messages received at 5 times per second 16/(2*5) = 1.6 sec smoothing
-    		if(can_MAIN.status == CAN_OK)
-    		{
-    			P4OUT ^= LED2;
-    		}
-    		if(can_MAIN.status == CAN_RTR)
-    		{
-    			//do nothing
-    		}
-    		if(can_MAIN.status == CAN_ERROR)
-    		{
-    			P4OUT ^= LED3;
-    		}
-    	}
-
-
     /*Main while loop*/
     while(1)
     {
@@ -233,6 +153,36 @@ int main(void) {
     } //end while loop
 	
 	//return 0;
+}
+
+/**
+ * Enable or disable a MPPT.
+ */
+static void ToggleMPPT(unsigned int mppt, MPPTState state) {
+	can_MPPT.address = AC_CAN_BASE2 + mppt;
+
+	if(state == MPPT_ON) {
+		can_MPPT.data.data_u16[0] = 0x0001;
+	} else {
+		can_MPPT.data.data_u16[0] = 0x0000;
+	}
+
+	can_MPPT.data.data_u16[3] = 0x0000; // to base address 0x600
+	can_MPPT.data.data_u16[2] = 0x0000;
+	can_MPPT.data.data_u16[1] = 0x0000;
+
+	can_transmit_MPPT();
+}
+
+/**
+ * Get a data dump from the MPPTs.
+ * @todo Austin is still testing this, so it may change later.
+ */
+static void GetMPPTData(unsigned int mppt) {
+	can_MPPT.address = AC_CAN_BASE1 + mppt;
+	can_sendRTR(0); //Send RTR request
+	can_transmit_MPPT();
+	can_sendRTR(1);
 }
 
 /**

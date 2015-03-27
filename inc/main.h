@@ -13,6 +13,8 @@
 */
 typedef enum { TRUE, FALSE } bool;
 
+typedef enum { MPPT_ON, MPPT_OFF } MPPTState;
+
 /**
  * Function Prototypes
  */
@@ -27,6 +29,13 @@ void timerB_init( void );
 #define SMCLK_RATE		8000000		// Hz
 #define ACLK_RATE		32768		// Hz
 #define TICK_RATE		100			// Hz
+
+/**
+ * @defgroup mpptDefines MPPT Definitions
+ */
+#define MPPT_ZERO 0
+#define MPPT_ONE  1
+#define MPPT_TWO  2
 
 /**
  * @defgroup delayDefines Delay Timings
