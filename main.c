@@ -10,17 +10,31 @@ char rx_PC_buffer[60];
 char *putPC_ptr, *getPC_ptr;
 bool put_status_PC, get_status_PC;
 bool Prompt_Active = FALSE;
+bool AC2PC_RX_flag = FALSE;
 /**@}*/
+
+/*Global Variables*/
+volatile unsigned char adc_stat[8];
+volatile signed long adc_voltage[8];
+
+volatile unsigned char int_op_flag = 0x00;
+volatile unsigned char adc_rdy_flag = 0x00;
+volatile unsigned char dr_switch_flag = 0x00;
+
+int i;
 
 
 /*
  * main.c
  */
 int main(void) {
-	UnitTest test[2];
-    WDTCTL = WDTPW | WDTHOLD;	// Stop watchdog timer
+WDTCTL = WDTPW | WDTHOLD; /*Stop watchdog timer to prevent time out reset*/
 
     _DINT();	/*Disable interrupts*/
+
+    /*Initialize global variables to 0*/
+    for(i=0;i<=8;i++) adc_voltage[i]=0;
+    for(i=0;i<=8;i++) adc_stat[i]=0;
 
     /*Initializations*/
     io_init();
@@ -31,17 +45,150 @@ int main(void) {
     // Initialize the RS-232 interface.
     AC2PC_init();
     UCA0IE |= UCRXIE; // Enable interrupts on the RX line.
+    P1OUT |= LED0;	/*Initialization 1 passed*/
 
+    adc_spi_init();	/*Setup tranmission to ADC*/
+    adc_init();	/*Initialize ADC*/
+	adc_selfcal();	/*Run a selfcal on all channels*/
+	adc_read_convert(0);
+
+    P1OUT |= LED1;	/*Initialization 2 passed*/
+
+    canspi_init();
+    can_init_MPPT();
+    can_init_MAIN();
+
+    //P4OUT |= ~(LED2);	/*Initialization 3 passed*/
+    P4OUT ^= LED2;	/*Initialization 3 passed*/
+
+   //RS-232 Init function calls go here
+
+    //P4OUT |= ~(LED3);	/*Initialization 4 passed*/
+    P4OUT ^= LED3;	/*Initialization 4 passed*/
+
+    /*Parallel Pin Interrupts*/
+    P1IFG &= ~(BUTTON1 | BUTTON2 | CAN_INTn0 | CAN_INTn1);
+
+	//WDTCTL = WDT_ARST_1000; /*Stop watchdog timer to prevent time out reset*/
     _EINT();	/*Enable interrupts*/
 
 	// No interrupt has come through yet, so mark this to FALSE initially.
 	put_status_PC = FALSE;
 	Prompt_Active = FALSE;
 
-    while(1) {
-    }
+    /*Function Testing*/
+
+    //Read the ADC
+	adc_voltage[0] = adc_in(0); /*Read in ADC channel reading*/
+	adc_voltage[1] = adc_in(1); /*Read in ADC channel reading*/
+	adc_voltage[2] = adc_in(2); /*Read in ADC channel reading*/
+	adc_voltage[3] = adc_in(3); /*Read in ADC channel reading*/
+	adc_voltage[4] = adc_in(4); /*Read in ADC channel reading*/
+	adc_voltage[5] = adc_in(5); /*Read in ADC channel reading*/
+	adc_voltage[6] = adc_in(6); /*Read in ADC channel reading*/
+	adc_voltage[7] = adc_in(7); /*Read in ADC channel reading*/
+
+    /*Main while loop*/
+    while(1)
+    {
+    	//MPPT CAN RTR Send
+        can_MPPT.address = AC_CAN_BASE1;
+    	can_sendRTR(0); //Send RTR request
+    	can_transmit_MPPT();
+    	can_sendRTR(1);
+
+    	/*Check for CAN packet reception on CAN_MPPT (Polling)*/
+    	if((P1IN & CAN_INTn0) == 0x00)
+    	{
+    	   //IRQ flag is set, so run the receive routine to either get the message, or the error
+    	   can_receive_MPPT();
+    	   // Check the status
+    	   // Modification: case based updating of actual current and velocity added
+    	   // - messages received at 5 times per second 16/(2*5) = 1.6 sec smoothing
+    	   if(can_MPPT.status == CAN_OK)
+    	   {
+    	    	P4OUT ^= LED2;
+    	   }
+    	   if(can_MPPT.status == CAN_RTR)
+    	   {
+    	    	//do nothing
+    	   }
+    	   if(can_MPPT.status == CAN_ERROR)
+    	   {
+    	    	P4OUT ^= LED3;
+    	   }
+    	 }
+
+    	/*BUTTON1 Press Received*/
+    	if(((P1IN & BUTTON1) != BUTTON1) || ((int_op_flag & 0x08) == 0x08))
+    	{
+    		int_op_flag &= 0x08;
+    		P4OUT ^= LED4;
+
+    	}
+
+    	/*BUTTON2 Press Received*/
+    	if(((P1IN & BUTTON2) != BUTTON2) || ((int_op_flag & 0x04) == 0x04))
+    	{
+    		 int_op_flag &= 0x04;
+    		 P4OUT ^= LED5;
+    	}
+
+    	/*Driver Switch 1 Interrupt Received*/
+    	if((P2IN & DRIVER_SW1) != DRIVER_SW1)
+    	{
+    		 dr_switch_flag &= 0x08;
+    		 P4OUT ^= LED2;
+
+    	}
+
+    	/*Driver Switch 2 Interrupt Received*/
+    	if((P2IN & DRIVER_SW2) != DRIVER_SW2)
+    	{
+    		dr_switch_flag &= 0x01;
+    		P4OUT ^= LED3;
+    	}
+
+    	/*Driver Switch 3 Interrupt Received*/
+    	if((P2IN & DRIVER_SW3) != DRIVER_SW3)
+    	{
+    		dr_switch_flag &= 0x04;
+    		P4OUT ^= LED4;
+    	}
+
+    } //end while loop
 	
 	return 0;
+}
+
+/**
+ * Enable or disable a MPPT.
+ */
+static void ToggleMPPT(unsigned int mppt, MPPTState state) {
+	can_MPPT.address = AC_CAN_BASE2 + mppt;
+
+	if(state == MPPT_ON) {
+		can_MPPT.data.data_u16[0] = 0x0001;
+	} else {
+		can_MPPT.data.data_u16[0] = 0x0000;
+	}
+
+	can_MPPT.data.data_u16[3] = 0x0000; // to base address 0x600
+	can_MPPT.data.data_u16[2] = 0x0000;
+	can_MPPT.data.data_u16[1] = 0x0000;
+
+	can_transmit_MPPT();
+}
+
+/**
+ * Get a data dump from the MPPTs.
+ * @todo Austin is still testing this, so it may change later.
+ */
+static void GetMPPTData(unsigned int mppt) {
+	can_MPPT.address = AC_CAN_BASE1 + mppt;
+	can_sendRTR(0); //Send RTR request
+	can_transmit_MPPT();
+	can_sendRTR(1);
 }
 
 /**
@@ -113,8 +260,8 @@ void io_init( void )
 	P3OUT = 0x00;	/*Set outputs to ground*/
    	P3DIR = ADC_DIN | ADC_SCLK | TX_EXT | CAN_SCLK2 | P3_UNUSED;	/*Setup output pins*/
    	P3DIR &= ~(ADC_DOUT | RX_EXT);
-    P3SEL = ADC_DIN | ADC_DOUT |ADC_SCLK | TX_EXT | RX_EXT | CAN_SCLK2;	/*Setup pins for secondary function*/
     P3OUT = CAN_SCLK2;
+    P3SEL = ADC_DIN | ADC_DOUT | ADC_SCLK | TX_EXT | RX_EXT | CAN_SCLK2;	/*Setup pins for secondary function*/
     Delay(DELAY_100);
 
     /*Port 4 Initialization*/
@@ -125,11 +272,15 @@ void io_init( void )
 
     /*Port 5 Initialization*/
 	P5OUT = 0x00;	/*Set outputs to ground*/
-    P5DIR = XT2OUT | CAN_RSTn2 | CAN_CSn2 | CAN_SI2 | P5_UNUSED;	/*Setup output pins*/
-    P5OUT = CAN_CSn2 | CAN_SI2;
-    P5SEL = XT2IN | XT2OUT | CAN_CSn2 | CAN_SI2 | CAN_SO2;	/*Setup pins for secondary function*/
-    P5OUT = CAN_RSTn2;	/*Send a reset signal*/
+    P5DIR =  XT2OUT | CAN_RSTn2 | CAN_CSn2  | CAN_SI2 | P5_UNUSED;	/*Setup output pins*/
+    P5OUT &= ~CAN_RSTn2;
+    Delay(DELAY_100);
+    Delay(DELAY_100);
+    P5OUT |= CAN_RSTn2;
     P5OUT &= ~P5_UNUSED;
+    Delay(DELAY_100);
+    P5OUT |= CAN_CSn2 | CAN_SI2;
+    P5SEL = XT2IN | XT2OUT | CAN_SI2 | CAN_SO2;	/*Setup pins for secondary function  */
     Delay(DELAY_100);
 
     /*Port 6 Initialization*/
@@ -138,9 +289,9 @@ void io_init( void )
 
     /*Port 7 Initialization*/
 	P7OUT = 0x00;	/*Set outputs to ground*/
-	P7DIR = XT1OUT | P7_UNUSED;	/*Setup output pins*/
-    P7SEL = XT1IN | XT1OUT;	/*Setup pins for secondary function*/
-    Delay(DELAY_100);
+	P7DIR = XT1OUT | P7_UNUSED;	/*Setup output pins */
+	P7SEL = XT1IN | XT1OUT;	/*Setup pins for secondary function*/
+//	Delay(DELAY_100);
 
     /*Port 8 Initialization*/
 	P8OUT = 0x00;	/*Set outputs to ground*/
@@ -153,15 +304,20 @@ void io_init( void )
 	/*Port 10 Initialization*/
 	P10OUT = 0x00;	/*Set outputs to ground*/
 	P10DIR = CAN_SCLK | CAN_CSn | CAN_RSTn | CAN_SI | P10_UNUSED;	/*Setup output pins*/
-	P10OUT = CAN_CSn | CAN_SI | CAN_SCLK;
-	P10SEL = CAN_SCLK | CAN_CSn | CAN_SI | CAN_SO;
-    P10OUT = CAN_RSTn;	/*Send a reset signal*/
+    P10OUT &= ~CAN_RSTn;
+    Delay(DELAY_100);
+    Delay(DELAY_100);
+	P10OUT |= CAN_RSTn;
     P10OUT &= ~P10_UNUSED;
+    Delay(DELAY_100);
+    P10OUT |= CAN_CSn | CAN_SI | CAN_SCLK;
+	P10SEL = CAN_SCLK | CAN_SI | CAN_SO;
     Delay(DELAY_100);
 
     /*Port 11 Initialization*/
  	P11OUT = 0x00;	/*Set outputs to ground*/
  	P11DIR = P11_UNUSED;	/*Setup output pins*/
+ 	P11SEL = 0x07;
 
  	/*Port J Initialization*/
 	PJOUT = 0x00;
@@ -181,17 +337,16 @@ void timerA_init(void)
  TA0CTL = 0x0110;	/*Set Timer A to ACLK, Start Timer A,  Up mode, Timer-A interrupt enabled*/
 }
 
-
 /*
 *  Initialize Timer B
 */
 void timerB_init( void )
 {
 	/*Set TBCTL to SMCLK at 8 MHz with prescaler of /8 */
-	//TBCTL = CNTL_0 | TBSSEL_2 | ID_3 | TBCLR;	/*TBSSEL_2 = SMCLK, ID_3 = SMCLK/8, clear TBR*/
-	//TBCCR0 = (34000);		/*Set timer to count to this value = */
-	//TBCCTL0 = CCIE;	/*Enable CCR0 interrupt*/
-	//TBCTL |= MC_1;	/*Set timer to 'up' count mode*/
+//	TBCTL = CNTL_0 | TBSSEL_2 | ID_3 | TBCLR;	/*TBSSEL_2 = SMCLK, ID_3 = SMCLK/8, clear TBR*/
+//	TBCCR0 = (65000);	/*Set timer to count to this value = */
+//	TBCCTL0 = CCIE;	/*Enable CCR0 interrupt*/
+//	TBCTL |= MC_1;	/*Set timer to 'up' count mode*/
 
 	/*Assign ACLK to Timer B with prescaler /2*/
 	TBCTL = CNTL_0 | TBSSEL_1 | ID_1 | TBCLR;	/*TBSSEL_1 = ACLK, ID_2 = ACLK/2 while ID_0 = CLK, clear TBR with TBCLR*/
@@ -235,8 +390,9 @@ void AC2PC_Interpret(void) {
 }
 
 /*
- * Interrupts
- */
+* Interrupts
+*/
+
 /*
 * BPS2PC Interrupt Service Routine
 */
@@ -281,6 +437,75 @@ __interrupt void USCI_A0_ISR(void)
     }
 }
 
+/*
+* Port 1 Pin Interrupt Service Routine
+*/
+	#pragma vector=PORT1_VECTOR
+__interrupt void P1_ISR(void)
+{
+  switch(__even_in_range(P1IV,16))
+  {
+  case 0:
+	break;                             		// Vector 0 - no interrupt
+  case 2:                                   // Vector 1.0 -
+    break;
+  case 4:                                   // Vector 1.1 -
+    break;
+  case 6:                                   // Vector 1.2 - BUTTON1
+    int_op_flag |= 0x08;
+    break;
+  case 8:                                   // Vector 1.3 - BUTTON2
+    int_op_flag |= 0x04;
+   break;
+  case 10:                                  // Vector 1.4 - CAN_INTn0
+    int_op_flag |= 0x80;
+    break;
+  case 12:                                  // Vector 1.5 - CAN_INTn1
+    int_op_flag |= 0x40;
+    break;
+  case 14:                                  // Vector 1.6 -
+    break;
+  case 16:                                  // Vector 1.7 -
+    break;
+  default:
+    break;
+  }
+}
+
+/*
+* Port 2 Pin Interrupt Service Routine
+*/
+	#pragma vector=PORT2_VECTOR
+__interrupt void P2_ISR(void)
+{
+  switch(__even_in_range(P2IV,16))
+  {
+  case 0:
+	break;                             		// Vector 0 - no interrupt
+  case 2:                                   // Vector 2.0 -
+    break;
+  case 4:                                   // Vector 2.1 -
+    break;
+  case 6:                                   // Vector 2.2 - ADC_RDYn
+    adc_rdy_flag |= 0x04;
+    break;
+  case 8:                                   // Vector 2.3 - DRIVER_SW1
+	dr_switch_flag |= 0x08;
+    break;
+  case 10:                                  // Vector 2.4 - DRIVER_SW2
+    dr_switch_flag |= 0x01;
+    break;
+  case 12:                                  // Vector 2.5 - DRIVER_SW3
+	dr_switch_flag |= 0x04;
+    break;
+  case 14:                                  // Vector 2.6 -
+    break;
+  case 16:                                  // Vector 2.7 -
+    break;
+  default:
+    break;
+  }
+}
 
 /*
 * Timer A interrupts

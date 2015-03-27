@@ -18,7 +18,7 @@ void clock_init(void)
 {
   int i;
 
-  //performed in ioinit();
+  // performed in io_init();
   //P5SEL |= XT2IN | XT2OUT;
   //P7SEL |= XT1IN | XT1OUT;
   // Set MCLCK to max rate (8MHz)
@@ -38,7 +38,7 @@ void clock_init(void)
   //Wait for oscillator to start up cleanly
    do
   {
-    UCSCTL7 &= ~(XT2OFFG + +XT1LFOFFG + XT1HFOFFG + DCOFFG);    // Clear XT2,XT1,DCO fault flags
+    UCSCTL7 &= ~(XT2OFFG + XT1LFOFFG + XT1HFOFFG + DCOFFG);    // Clear XT2,XT1,DCO fault flags
     SFRIFG1 &= ~OFIFG;                                          // Clear fault flags
     for(i=255;i>0;i--);                                         // Delay for Osc to stabilize
   }while ((SFRIFG1&OFIFG) !=0);                                 // Test oscillator fault flag
@@ -49,11 +49,11 @@ void clock_init(void)
   //UCSCTL6 setup XT2 as 16 MHz crystal
   UCSCTL6 &= ~XT2OFF;
   UCSCTL6 |= XT2DRIVE_3; // 16-24 MHz
-  UCSCTL6 &= ~XT2BYPASS; //XT2 Sourced Externally from pin - 16MHz
+  UCSCTL6 &= ~XT2BYPASS; //XT2 sourced Internally from pin - 16MHz
 
   do
   {
-    UCSCTL7 &= ~(XT2OFFG + +XT1LFOFFG + XT1HFOFFG + DCOFFG);   // Clear XT2,XT1,DCO fault flags
+    UCSCTL7 &= ~(XT2OFFG + XT1LFOFFG + XT1HFOFFG + DCOFFG);   // Clear XT2,XT1,DCO fault flags
     SFRIFG1 &= ~OFIFG;                                         // Clear fault flags
     for(i=255;i>0;i--);                                         // Delay for Osc to stabilize
   }while ((SFRIFG1 & OFIFG) != 0x0000);                                // Test oscillator fault flag
@@ -106,6 +106,3 @@ void SetVCoreUp (unsigned int level)
   // Lock PMM registers for write access
   PMMCTL0_H = 0x00;
 }
-
-
-
