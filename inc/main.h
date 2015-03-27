@@ -1,13 +1,13 @@
-#include<msp430x54xa.h>
-#include "./can.h"
-#include "./adc.h"
-#include "./rs232.h"
-
 /**
  * @note Include guard to prevent recursive inclusion.
  */
 #ifndef MAIN_H_
 #define MAIN_H_
+
+#include<msp430x54xa.h>
+#include "./can.h"
+#include "./adc.h"
+#include "./rs232.h"
 
 /**
 * @enum bool
@@ -34,11 +34,6 @@ typedef enum { INIT, IDLE, RUNNING, CHARGING } CarState;
  * we will start conversions.
  */
 typedef enum { AIN0, AIN1, AIN2, AIN3, SHUNT, SHUNT_BIAS, REF, INT12V } ADCState;
-
-
-
-#include "./test/test_suite.h"
-#include "./rs232.h"
 
 /**
  * Function Prototypes
