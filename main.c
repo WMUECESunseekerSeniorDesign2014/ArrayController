@@ -7,7 +7,10 @@
 static void InitController(void);
 static void GeneralOperation(void);
 static void ChargeOnly(void);
+<<<<<<< HEAD
 static void HumanInterruptCheck(void);
+=======
+>>>>>>> Wrote out the descriptions for the main functions for the controller.
 
 CarState carState = INIT; // The state that the car is in.
 ADCState adcState = AIN0; // The state determining what the ADC should be converting at this moment.
@@ -88,8 +91,11 @@ WDTCTL = WDTPW | WDTHOLD; /*Stop watchdog timer to prevent time out reset*/
 	Prompt_Active = FALSE;
 
     while(1) {
+<<<<<<< HEAD
     	HumanInterruptCheck();
 
+=======
+>>>>>>> Wrote out the descriptions for the main functions for the controller.
     	switch(carState) {
     	case INIT:
     		InitController();
@@ -224,6 +230,42 @@ static void GeneralOperation(void) {
 			P4OUT ^= LED3;
 	   }
 	 }
+}
+
+/**
+ * ChargeOnly() is where the Array Controller will simply manage charging the batteries. It will
+ * perform the following operations:
+ *  * Calculate the state-of-charge (coulomb count).
+ *  * Disable the MPPTs as the batteries fill.
+ * @note We need to know what max voltage of the battery array!
+ */
+static void ChargeOnly(void) {
+
+}
+
+/**
+ * InitController() should initialize the controller to the point where it should be ready to aid the car
+ * in its main operation. InitController should do the following:
+ *  1. Initialize the ADC.
+ *  2. Run diagnostics on the ADC.
+ *  3. Initialize CAN.
+ *  4. Initialize RS-232
+ */
+static void InitController(void) {
+
+}
+
+/**
+ * GeneralOperation() is where the Array Controller will be most of the time. In this function, the
+ * ArrayController will:
+ *  * Calculate the state-of-charge (coulomb count).
+ *  * Dump telemetry data out to the CAN bus.
+ *  * Make decisions based on the state-of-charge to enable/disable the MPPTs.
+ *  * Poll the driver switches to see if the driver is requesting that the MPPTs turn off.
+ *  * Poll the thermistors and, if needed, send an emergency CAN message.
+ */
+static void GeneralOperation(void) {
+
 }
 
 /**
