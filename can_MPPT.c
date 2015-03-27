@@ -82,8 +82,8 @@ void can_init_MPPT( void )
 
 	// Set up receive filtering & masks
 	// RXF0 - Buffer 0
-	buffer[ 0] = (unsigned char)((DC_CAN_BASE + DC_SWITCH) >> 3);
-	buffer[ 1] = (unsigned char)((DC_CAN_BASE + DC_SWITCH) << 5);
+	buffer[ 0] = (unsigned char)((AC_CAN_BASE1) >> 3);
+	buffer[ 1] = (unsigned char)((AC_CAN_BASE1) << 5);
 	buffer[ 2] = 0x00;
 	buffer[ 3] = 0x00;
 	// RXF1 - Buffer 0
@@ -92,8 +92,8 @@ void can_init_MPPT( void )
 	buffer[ 6] = 0x00;
 	buffer[ 7] = 0x00;
 	// RXF2 - Buffer 1
-	buffer[ 8] = (unsigned char)((AC_CAN_BASE1) >> 3);
-	buffer[ 9] = (unsigned char)((AC_CAN_BASE1) << 5);
+	buffer[ 8] = 0x00;
+	buffer[ 9] = 0x00;
 	buffer[10] = 0x00;
 	buffer[11] = 0x00;
 	can_write( RXF0SIDH, &buffer[0], 12 );
@@ -394,17 +394,13 @@ void can_sendRTR(int change)
 	if(change == 0)
 	{
 		//Change Data Length Code Register - use can_write instead?
-		can_mod( TXB0DLC, 0x4F, 0x48 );			// Modify bit 6 for RTR sends 0x48 sets the RTR bit and 8 specifies to transmit 8 bits
-//		can_mod( TXB1DLC, 0x40, 0xFF );			// Modify bit 6 for RTR sends
-//		can_mod( TXB2DLC, 0x40, 0xFF );			// Modify bit 6 for RTR sends
+		can_mod( TXB1DLC, 0x4F, 0x48 );			// Modify bit 6 for RTR sends 0x48 sets the RTR bit and 8 specifies to transmit 8 bytes
 	}
 
 	if(change == 1)
 	{
 		// Switch back Data Length Code Register to send normal Data frames
-		can_mod( TXB0DLC, 0x4F, 0x08 );			// Modify the RTR bit back to 0
-//		can_mod( TXB1DLC, 0x40, 0x00 );
-//		can_mod( TXB2DLC, 0x40, 0x00 );
+		can_mod( TXB1DLC, 0x4F, 0x08 );			// Modify the RTR bit back to 0
 	}
 }
 
