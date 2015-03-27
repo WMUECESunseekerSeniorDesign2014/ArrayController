@@ -7,10 +7,7 @@
 static void InitController(void);
 static void GeneralOperation(void);
 static void ChargeOnly(void);
-<<<<<<< HEAD
 static void HumanInterruptCheck(void);
-=======
->>>>>>> Wrote out the descriptions for the main functions for the controller.
 
 CarState carState = INIT; // The state that the car is in.
 ADCState adcState = AIN0; // The state determining what the ADC should be converting at this moment.
@@ -42,63 +39,11 @@ int i;
  * main.c
  */
 int main(void) {
-WDTCTL = WDTPW | WDTHOLD; /*Stop watchdog timer to prevent time out reset*/
-
-<<<<<<< HEAD
-    _DINT();	/*Disable interrupts*/
-
-    /*Initialize global variables to 0*/
-    for(i=0;i<=8;i++) adc_voltage[i]=0;
-    for(i=0;i<=8;i++) adc_stat[i]=0;
-
-    /*Initializations*/
-    io_init();
-    clock_init();
-    timerA_init();
-    timerB_init();
-
-    // Initialize the RS-232 interface.
-    AC2PC_init();
-    UCA0IE |= UCRXIE; // Enable interrupts on the RX line.
-    P1OUT |= LED0;	/*Initialization 1 passed*/
-
-    adc_spi_init();	/*Setup tranmission to ADC*/
-    adc_init();	/*Initialize ADC*/
-	adc_selfcal();	/*Run a selfcal on all channels*/
-	adc_read_convert(0);
-
-    P1OUT |= LED1;	/*Initialization 2 passed*/
-
-    canspi_init();
-    can_init_MPPT();
-    can_init_MAIN();
-
-    //P4OUT |= ~(LED2);	/*Initialization 3 passed*/
-    P4OUT ^= LED2;	/*Initialization 3 passed*/
-
-   //RS-232 Init function calls go here
-
-    //P4OUT |= ~(LED3);	/*Initialization 4 passed*/
-    P4OUT ^= LED3;	/*Initialization 4 passed*/
-
-    /*Parallel Pin Interrupts*/
-    P1IFG &= ~(BUTTON1 | BUTTON2 | CAN_INTn0 | CAN_INTn1);
-
-	//WDTCTL = WDT_ARST_1000; /*Stop watchdog timer to prevent time out reset*/
-    _EINT();	/*Enable interrupts*/
-
-=======
->>>>>>> Moved some of the initialization stuff to the init function.
-	// No interrupt has come through yet, so mark this to FALSE initially.
-	put_status_PC = FALSE;
-	Prompt_Active = FALSE;
+	WDTCTL = WDTPW | WDTHOLD; /*Stop watchdog timer to prevent time out reset*/
 
     while(1) {
-<<<<<<< HEAD
     	HumanInterruptCheck();
 
-=======
->>>>>>> Wrote out the descriptions for the main functions for the controller.
     	switch(carState) {
     	case INIT:
     		_DINT(); // Disable interrupts
@@ -193,18 +138,6 @@ static void GetMPPTData(unsigned int mppt) {
 	can_sendRTR(1);
 
 /**
- * InitController() should initialize the controller to the point where it should be ready to aid the car
- * in its main operation. InitController should do the following:
- *  1. Initialize the ADC.
- *  2. Run diagnostics on the ADC.
- *  3. Initialize CAN.
- *  4. Initialize RS-232
- */
-static void InitController(void) {
-
-}
-
-/**
  * GeneralOperation() is where the Array Controller will be most of the time. In this function, the
  * ArrayController will:
  *  * Calculate the state-of-charge (coulomb count).
@@ -263,14 +196,27 @@ static void InitController(void) {
 	clock_init();
 	timerA_init();
 	timerB_init();
+	/** @todo Do we need RTC init? */
 
 	/* Initialize the ADC. */
+	for(i=0;i<=8;i++) adc_voltage[i]=0; // Initialize globals to zero.
+	for(i=0;i<=8;i++) adc_stat[i]=0;
+	adc_spi_init();	/*Setup tranmission to ADC*/
+	adc_init();	/*Initialize ADC*/
+	adc_selfcal();	/*Run a selfcal on all channels*/
+	adc_read_convert(0);
 
 	/* ADC Diagnostics */
 
 	/* CAN Initialization */
+	canspi_init();
+	can_init_MPPT();
+	can_init_MAIN();
 
 	/* Initialize RS-232 */
+	// No interrupt has come through yet, so mark this to FALSE initially.
+	put_status_PC = FALSE;
+	Prompt_Active = FALSE;
 	AC2PC_init();
 	UCA0IE |= UCRXIE; // Enable interrupts on the RX line.
 }
