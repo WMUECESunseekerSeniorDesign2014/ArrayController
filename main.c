@@ -2,6 +2,17 @@
 #include "./inc/test/test_suite.h"
 
 /**
+ * @defgroup mainProto Private Main Function Prototypes
+ */
+static void InitController(void);
+static void GeneralOperation(void);
+static void ChargeOnly(void);
+static void HumanInterruptCheck(void);
+
+CarState carState = INIT; // The state that the car is in.
+ADCState adcState = AIN0; // The state determining what the ADC should be converting at this moment.
+
+/**
  * @defgroup privRs232Vars Private Main RS-232 Variables
  */
 volatile int RX_INT_count = 0;
@@ -76,89 +87,69 @@ WDTCTL = WDTPW | WDTHOLD; /*Stop watchdog timer to prevent time out reset*/
 	put_status_PC = FALSE;
 	Prompt_Active = FALSE;
 
-    /*Function Testing*/
+    while(1) {
+    	HumanInterruptCheck();
 
-    //Read the ADC
-	adc_voltage[0] = adc_in(0); /*Read in ADC channel reading*/
-	adc_voltage[1] = adc_in(1); /*Read in ADC channel reading*/
-	adc_voltage[2] = adc_in(2); /*Read in ADC channel reading*/
-	adc_voltage[3] = adc_in(3); /*Read in ADC channel reading*/
-	adc_voltage[4] = adc_in(4); /*Read in ADC channel reading*/
-	adc_voltage[5] = adc_in(5); /*Read in ADC channel reading*/
-	adc_voltage[6] = adc_in(6); /*Read in ADC channel reading*/
-	adc_voltage[7] = adc_in(7); /*Read in ADC channel reading*/
+    	switch(carState) {
+    	case INIT:
+    		InitController();
+    		break;
 
-    /*Main while loop*/
-    while(1)
-    {
-    	//MPPT CAN RTR Send
-        can_MPPT.address = AC_CAN_BASE1;
-    	can_sendRTR(0); //Send RTR request
-    	can_transmit_MPPT();
-    	can_sendRTR(1);
+    	case IDLE:
+    		// Do nothing. Maybe blink some LEDs or something to show that the
+    		// controller isn't broken?
+    		break;
 
-    	/*Check for CAN packet reception on CAN_MPPT (Polling)*/
-    	if((P1IN & CAN_INTn0) == 0x00)
-    	{
-    	   //IRQ flag is set, so run the receive routine to either get the message, or the error
-    	   can_receive_MPPT();
-    	   // Check the status
-    	   // Modification: case based updating of actual current and velocity added
-    	   // - messages received at 5 times per second 16/(2*5) = 1.6 sec smoothing
-    	   if(can_MPPT.status == CAN_OK)
-    	   {
-    	    	P4OUT ^= LED2;
-    	   }
-    	   if(can_MPPT.status == CAN_RTR)
-    	   {
-    	    	//do nothing
-    	   }
-    	   if(can_MPPT.status == CAN_ERROR)
-    	   {
-    	    	P4OUT ^= LED3;
-    	   }
-    	 }
+    	case RUNNING:
+    		GeneralOperation();
+    		break;
 
-    	/*BUTTON1 Press Received*/
-    	if(((P1IN & BUTTON1) != BUTTON1) || ((int_op_flag & 0x08) == 0x08))
-    	{
-    		int_op_flag &= 0x08;
-    		P4OUT ^= LED4;
-
+    	case CHARGING:
+    		ChargeOnly();
+    		break;
     	}
-
-    	/*BUTTON2 Press Received*/
-    	if(((P1IN & BUTTON2) != BUTTON2) || ((int_op_flag & 0x04) == 0x04))
-    	{
-    		 int_op_flag &= 0x04;
-    		 P4OUT ^= LED5;
-    	}
-
-    	/*Driver Switch 1 Interrupt Received*/
-    	if((P2IN & DRIVER_SW1) != DRIVER_SW1)
-    	{
-    		 dr_switch_flag &= 0x08;
-    		 P4OUT ^= LED2;
-
-    	}
-
-    	/*Driver Switch 2 Interrupt Received*/
-    	if((P2IN & DRIVER_SW2) != DRIVER_SW2)
-    	{
-    		dr_switch_flag &= 0x01;
-    		P4OUT ^= LED3;
-    	}
-
-    	/*Driver Switch 3 Interrupt Received*/
-    	if((P2IN & DRIVER_SW3) != DRIVER_SW3)
-    	{
-    		dr_switch_flag &= 0x04;
-    		P4OUT ^= LED4;
-    	}
-
-    } //end while loop
+    }
 	
 	return 0;
+}
+
+static void HumanInterruptCheck(void) {
+	/*BUTTON1 Press Received*/
+	if(((P1IN & BUTTON1) != BUTTON1) || ((int_op_flag & 0x08) == 0x08))
+	{
+		int_op_flag &= 0x08;
+		P4OUT ^= LED4;
+
+	}
+
+	/*BUTTON2 Press Received*/
+	if(((P1IN & BUTTON2) != BUTTON2) || ((int_op_flag & 0x04) == 0x04))
+	{
+		 int_op_flag &= 0x04;
+		 P4OUT ^= LED5;
+	}
+
+	/*Driver Switch 1 Interrupt Received*/
+	if((P2IN & DRIVER_SW1) != DRIVER_SW1)
+	{
+		 dr_switch_flag &= 0x08;
+		 P4OUT ^= LED2;
+
+	}
+
+	/*Driver Switch 2 Interrupt Received*/
+	if((P2IN & DRIVER_SW2) != DRIVER_SW2)
+	{
+		dr_switch_flag &= 0x01;
+		P4OUT ^= LED3;
+	}
+
+	/*Driver Switch 3 Interrupt Received*/
+	if((P2IN & DRIVER_SW3) != DRIVER_SW3)
+	{
+		dr_switch_flag &= 0x04;
+		P4OUT ^= LED4;
+	}
 }
 
 /**
@@ -189,6 +180,61 @@ static void GetMPPTData(unsigned int mppt) {
 	can_sendRTR(0); //Send RTR request
 	can_transmit_MPPT();
 	can_sendRTR(1);
+
+/**
+ * InitController() should initialize the controller to the point where it should be ready to aid the car
+ * in its main operation. InitController should do the following:
+ *  1. Initialize the ADC.
+ *  2. Run diagnostics on the ADC.
+ *  3. Initialize CAN.
+ *  4. Initialize RS-232
+ */
+static void InitController(void) {
+
+}
+
+/**
+ * GeneralOperation() is where the Array Controller will be most of the time. In this function, the
+ * ArrayController will:
+ *  * Calculate the state-of-charge (coulomb count).
+ *  * Dump telemetry data out to the CAN bus.
+ *  * Make decisions based on the state-of-charge to enable/disable the MPPTs.
+ *  * Poll the driver switches to see if the driver is requesting that the MPPTs turn off.
+ *  * Poll the thermistors and, if needed, send an emergency CAN message.
+ */
+static void GeneralOperation(void) {
+	/*Check for CAN packet reception on CAN_MPPT (Polling)*/
+	if((P1IN & CAN_INTn0) == 0x00)
+	{
+	   //IRQ flag is set, so run the receive routine to either get the message, or the error
+	   can_receive_MPPT();
+	   // Check the status
+	   // Modification: case based updating of actual current and velocity added
+	   // - messages received at 5 times per second 16/(2*5) = 1.6 sec smoothing
+	   if(can_MPPT.status == CAN_OK)
+	   {
+			P4OUT ^= LED2;
+	   }
+	   if(can_MPPT.status == CAN_RTR)
+	   {
+			//do nothing
+	   }
+	   if(can_MPPT.status == CAN_ERROR)
+	   {
+			P4OUT ^= LED3;
+	   }
+	 }
+}
+
+/**
+ * ChargeOnly() is where the Array Controller will simply manage charging the batteries. It will
+ * perform the following operations:
+ *  * Calculate the state-of-charge (coulomb count).
+ *  * Disable the MPPTs as the batteries fill.
+ * @note We need to know what max voltage of the battery array!
+ */
+static void ChargeOnly(void) {
+
 }
 
 /**
