@@ -44,6 +44,7 @@ int i;
 int main(void) {
 WDTCTL = WDTPW | WDTHOLD; /*Stop watchdog timer to prevent time out reset*/
 
+<<<<<<< HEAD
     _DINT();	/*Disable interrupts*/
 
     /*Initialize global variables to 0*/
@@ -86,6 +87,8 @@ WDTCTL = WDTPW | WDTHOLD; /*Stop watchdog timer to prevent time out reset*/
 	//WDTCTL = WDT_ARST_1000; /*Stop watchdog timer to prevent time out reset*/
     _EINT();	/*Enable interrupts*/
 
+=======
+>>>>>>> Moved some of the initialization stuff to the init function.
 	// No interrupt has come through yet, so mark this to FALSE initially.
 	put_status_PC = FALSE;
 	Prompt_Active = FALSE;
@@ -98,12 +101,14 @@ WDTCTL = WDTPW | WDTHOLD; /*Stop watchdog timer to prevent time out reset*/
 >>>>>>> Wrote out the descriptions for the main functions for the controller.
     	switch(carState) {
     	case INIT:
+    		_DINT(); // Disable interrupts
     		InitController();
+    		_EINT(); // Enable interrupts
     		break;
 
     	case IDLE:
-    		// Do nothing. Maybe blink some LEDs or something to show that the
-    		// controller isn't broken?
+    		// Do nothing but wait for the 504. Maybe blink some LEDs or
+    		// something to show that the controller isn't broken?
     		break;
 
     	case RUNNING:
@@ -246,13 +251,28 @@ static void ChargeOnly(void) {
 /**
  * InitController() should initialize the controller to the point where it should be ready to aid the car
  * in its main operation. InitController should do the following:
- *  1. Initialize the ADC.
- *  2. Run diagnostics on the ADC.
- *  3. Initialize CAN.
- *  4. Initialize RS-232
+ *  1. Initialize the vital components (CLK, IO, etc).
+ *  2. Initialize the ADC.
+ *  3. Run diagnostics on the ADC.
+ *  4. Initialize CAN.
+ *  5. Initialize RS-232
  */
 static void InitController(void) {
+	/* Vital Initializations */
+	io_init();
+	clock_init();
+	timerA_init();
+	timerB_init();
 
+	/* Initialize the ADC. */
+
+	/* ADC Diagnostics */
+
+	/* CAN Initialization */
+
+	/* Initialize RS-232 */
+	AC2PC_init();
+	UCA0IE |= UCRXIE; // Enable interrupts on the RX line.
 }
 
 /**
