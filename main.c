@@ -211,6 +211,7 @@ static void InitController(void) {
 
 	/* ADC Diagnostics */
 	P4OUT |= LED5; // 0 0 1 1
+	adc_selfcal(); // Calibrate all of the channels.
 
 	/* Main CAN Initialization */
 	P4OUT |= LED3; // 0 1 0 0
