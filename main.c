@@ -32,6 +32,8 @@ volatile unsigned char int_op_flag = 0x00;
 volatile unsigned char adc_rdy_flag = 0x00;
 volatile unsigned char dr_switch_flag = 0x00;
 
+bool init_flag = FALSE;
+
 int i;
 
 
@@ -46,9 +48,11 @@ int main(void) {
 
     	switch(carState) {
     	case INIT:
-    		_DINT(); // Disable interrupts
-    		InitController();
-    		_EINT(); // Enable interrupts
+    		if(init_flag == FALSE) { // We only want the initialization to happen once.
+    			_DINT(); // Disable interrupts
+				InitController();
+				_EINT(); // Enable interrupts
+    		}
     		break;
 
     	case IDLE:
@@ -234,6 +238,8 @@ static void InitController(void) {
 
 	// Reset the LEDs to the OFF state so other systems can use them..
 	P4OUT &= ~(LED2 | LED3 | LED4 | LED4);
+
+	init_flag = TRUE;
 }
 
 /**
