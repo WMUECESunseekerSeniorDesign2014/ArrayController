@@ -24,8 +24,8 @@ bool AC2PC_RX_flag = FALSE;
 /**@}*/
 
 /*Global Variables*/
-volatile unsigned char adc_stat[8];
-volatile signed long adc_voltage[8];
+volatile unsigned char adc_stat[8] = { 0 };
+volatile signed long adc_voltage[8] = { 0 };
 
 volatile unsigned char int_op_flag = 0x00;
 volatile unsigned char adc_rdy_flag = 0x00;
@@ -208,8 +208,6 @@ static void InitController(void) {
 	/* Initialize the ADC. */
 	P4OUT &= ~LED4;
 	P4OUT |= LED5; // 0 0 1 0
-	for(i=0;i<=8;i++) adc_voltage[i]=0; // Initialize globals to zero.
-	for(i=0;i<=8;i++) adc_stat[i]=0;
 	adc_spi_init();	/*Setup tranmission to ADC*/
 	adc_init();	/*Initialize ADC*/
 	adc_selfcal();	/*Run a selfcal on all channels*/
