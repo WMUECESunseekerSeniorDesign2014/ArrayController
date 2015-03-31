@@ -196,16 +196,17 @@ static void ChargeOnly(void) {
  */
 static void InitController(void) {
 	/* Vital Initializations */
-	P4OUT |= LED5; // 0 0 0 1
 	io_init();
 	clock_init();
 	timerA_init();
 	timerB_init();
+	P4OUT |= LED2 | LED3 | LED4 | LED5; // Turn all of the LEDs off.
+	P4OUT &= ~(LED5); // 0 0 0 1
 	/** @todo Do we need RTC init? */
 
 	/* Initialize the ADC. */
-	P4OUT |= LED4;
-	P4OUT &= ~(LED5); // 0 0 1 0
+	P4OUT &= ~LED4;
+	P4OUT |= LED5; // 0 0 1 0
 	for(i=0;i<=8;i++) adc_voltage[i]=0; // Initialize globals to zero.
 	for(i=0;i<=8;i++) adc_stat[i]=0;
 	adc_spi_init();	/*Setup tranmission to ADC*/
@@ -214,22 +215,22 @@ static void InitController(void) {
 	adc_read_convert(0);
 
 	/* ADC Diagnostics */
-	P4OUT |= LED5; // 0 0 1 1
+	P4OUT &= ~LED5; // 0 0 1 1
 	adc_selfcal(); // Calibrate all of the channels.
 
 	/* Main CAN Initialization */
-	P4OUT |= LED3; // 0 1 0 0
+	P4OUT &= ~LED3; // 0 1 0 0
+	P4OUT |= (LED4 | LED5);
 	canspi_init();
 	can_init_MPPT();
 	can_init_MAIN();
-	P4OUT &= ~(LED4 | LED5);
 
 	/* MPPT CAN Initialization */
-	P4OUT |= LED5; // 0 1 0 1
+	P4OUT &= ~LED5; // 0 1 0 1
 
 	/* Initialize RS-232 */
-	P4OUT |= LED3; // 0 1 1 0
-	P4OUT &= ~(LED5);
+	P4OUT &= ~(LED3 | LED4); // 0 1 1 0 Needs fixing
+	P4OUT |= (LED5);
 	// No interrupt has come through yet, so mark this to FALSE initially.
 	put_status_PC = FALSE;
 	Prompt_Active = FALSE;
@@ -237,7 +238,7 @@ static void InitController(void) {
 	UCA0IE |= UCRXIE; // Enable interrupts on the RX line.
 
 	// Reset the LEDs to the OFF state so other systems can use them..
-	P4OUT &= ~(LED2 | LED3 | LED4 | LED4);
+	P4OUT |= LED2 | LED3 | LED4 | LED5; /** @todo Would Dr. Bazuin like the LEDs turned on or off after init? */
 
 	init_flag = TRUE;
 }
