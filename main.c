@@ -30,7 +30,6 @@ volatile signed long adc_voltage[8] = { 0 };
 volatile unsigned char int_op_flag = 0x00;
 volatile unsigned char adc_rdy_flag = 0x00;
 volatile unsigned char dr_switch_flag = 0x00;
-
 bool int_enable_flag = FALSE;
 
 int i;
@@ -54,6 +53,7 @@ int main(void) {
 
     	case IDLE:
 			P4OUT &= ~(LED4 | LED5); // Turn on two LEDs to show we're idling.
+			/** @todo Poll for the 504 message. This should be added during system testing. */
     		break;
 
     	case RUNNING:
