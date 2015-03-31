@@ -53,9 +53,7 @@ int main(void) {
     		break;
 
     	case IDLE:
-    		asm("nop");
-    		// Do nothing but wait for the 504. Maybe blink some LEDs or
-    		// something to show that the controller isn't broken?
+			P4OUT &= ~(LED4 | LED5); // Turn on two LEDs to show we're idling.
     		break;
 
     	case RUNNING:
@@ -240,8 +238,8 @@ static void InitController(void) {
 	AC2PC_init();
 	UCA0IE |= UCRXIE; // Enable interrupts on the RX line.
 
-	// Reset the LEDs to the OFF state so other systems can use them..
-	P4OUT |= LED2 | LED3 | LED4 | LED5; /** @todo Would Dr. Bazuin like the LEDs turned on or off after init? */
+	// Set up the LEDs for the next state.
+	P4OUT |= LED2 | LED3 | LED4 | LED5;
 }
 
 /**
