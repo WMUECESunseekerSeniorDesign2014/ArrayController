@@ -7,6 +7,7 @@ static void InitController(void);
 static void GeneralOperation(void);
 static void ChargeOnly(void);
 static void HumanInterruptCheck(void);
+/**@}*/
 
 CarState carState = INIT; // The state that the car is in.
 ADCState adcState = AIN0; // The state determining what the ADC should be converting at this moment.
