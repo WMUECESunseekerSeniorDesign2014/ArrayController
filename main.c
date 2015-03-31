@@ -1,5 +1,4 @@
 #include "./inc/main.h"
-#include "./inc/test/test_suite.h"
 
 /**
  * @defgroup mainProto Private Main Function Prototypes
@@ -140,6 +139,7 @@ static void GetMPPTData(unsigned int mppt) {
 	can_sendRTR(0); //Send RTR request
 	can_transmit_MPPT();
 	can_sendRTR(1);
+}
 
 /**
  * GeneralOperation() is where the Array Controller will be most of the time. In this function, the
@@ -240,30 +240,6 @@ static void InitController(void) {
 	P4OUT &= ~(LED2 | LED3 | LED4 | LED4);
 
 	init_flag = TRUE;
-}
-
-/**
- * GeneralOperation() is where the Array Controller will be most of the time. In this function, the
- * ArrayController will:
- *  * Calculate the state-of-charge (coulomb count).
- *  * Dump telemetry data out to the CAN bus.
- *  * Make decisions based on the state-of-charge to enable/disable the MPPTs.
- *  * Poll the driver switches to see if the driver is requesting that the MPPTs turn off.
- *  * Poll the thermistors and, if needed, send an emergency CAN message.
- */
-static void GeneralOperation(void) {
-
-}
-
-/**
- * ChargeOnly() is where the Array Controller will simply manage charging the batteries. It will
- * perform the following operations:
- *  * Calculate the state-of-charge (coulomb count).
- *  * Disable the MPPTs as the batteries fill.
- * @note We need to know what max voltage of the battery array!
- */
-static void ChargeOnly(void) {
-
 }
 
 /**
