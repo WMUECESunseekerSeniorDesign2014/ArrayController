@@ -32,6 +32,7 @@ volatile unsigned char int_op_flag = 0x00;
 volatile unsigned char adc_rdy_flag = 0x00;
 volatile unsigned char dr_switch_flag = 0x00;
 bool int_enable_flag = FALSE;
+bool dc_504_flag = FALSE;
 
 int i;
 
@@ -181,9 +182,28 @@ static void GeneralOperation(void) {
  * perform the following operations:
  *  * Calculate the state-of-charge (coulomb count).
  *  * Disable the MPPTs as the batteries fill.
- * @note We need to know what max voltage of the battery array!
+ * @note Max voltage of the battery array is 160V.
  */
 static void ChargeOnly(void) {
+
+}
+
+/**
+ * IdleController() is where the Array Controller will sit while waiting for the 504 message from
+ * the Driver Controller. This is the point where the Array Controller will check its connections
+ * through the information available. In this state, the following will be checked:
+ *
+ *  1. If the battery voltages are different, the one that is different has a blown fuse. This will
+ *     be indicated through enabling the red LED (LED1) and dumping this data out on the RS-232 port.
+ *  2. If the battery voltages are equivalent to the array voltages, everything is fine. LED1 is off.
+ *  3. If the battery voltages are equivalent to each other BUT all three are sitting at the max
+ *     voltage (160V), the array is not connect to the batteries. This will be shown by enabling the
+ *     LED1 and dumping data to the RS-232 port.
+ *
+ * If either (1) or (3) occur and a 504 message is received, the Array Controller will acknowledge the
+ * 504 message by setting dc_504_flag = TRUE but it will not move to the next state.
+ */
+static void IdleController(void) {
 
 }
 
