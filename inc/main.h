@@ -59,6 +59,13 @@ void timerB_init( void );
 #define MPPT_ONE  1
 #define MPPT_TWO  2
 
+// The amount by which the MPPTs scale the data.
+#define MPPT_AV_SCALE 100  // Array Voltage
+#define MPPT_AC_SCALE 1000 // Array Current
+#define MPPT_BV_SCALE 100  // Battery Voltage
+#define MPPT_T_SCALE  100  // Temperature
+/**@}*/
+
 /**
  * @defgroup delayDefines Delay Timings
  * @{
