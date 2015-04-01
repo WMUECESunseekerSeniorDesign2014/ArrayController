@@ -7,7 +7,7 @@ static void InitController(void);
 static void GeneralOperation(void);
 static void ChargeOnly(void);
 static void HumanInterruptCheck(void);
-static void ToggleMPPT(unsigned int mppt, MPPTState state);
+static void ToggleMPPT(unsigned int mppt, FunctionalState state);
 static int GetMPPTData(unsigned int mppt);
 void ToggleError(FunctionalState toggle);
 /**@}*/
@@ -120,7 +120,7 @@ static void HumanInterruptCheck(void) {
 /**
  * Enable or disable a MPPT.
  */
-static void ToggleMPPT(unsigned int mppt, MPPTState state) {
+static void ToggleMPPT(unsigned int mppt, FunctionalState state) {
 	can_MPPT.address = AC_CAN_BASE2 + mppt;
 
 	if(state == MPPT_ON) {
@@ -240,28 +240,6 @@ static void IdleController(void) {
 
 		status = GetMPPTData(i);
 	}
-
-	// If the battery voltages as reported by the MPPTs are different, then a fuse
-	// has blown. Note that if the first statement is true, the system will not check
-	// the second; if the first statement is false, the system will check the second
-	// statement and since battV[MPPT_ZERO] == battV[MPPT_ONE], a third comparison
-	// is not needed.
-	if((battV[MPPT_ZERO] != battV[MPPT_ONE]) || (battV[MPPT_ONE] != battV[MPPT_TWO])) {
-
-	}
-
-	// Broke this into multiple if statements for readability. This verifies that the
-	// voltages the MPPTs read from the batteries are different and they're not within
-	// the maximum voltage range. If the inner most if statement is reached, then the
-	// array is not connected to the rest of the car!
-	if(battV[MPPT_ZERO] == battV[MPPT_ONE]) {
-		if(battV[MPPT_ONE] == battV[MPPT_TWO]) {
-			if((battV[MPPT_ZERO] >= BATT_MAX_LOWER_V) && (battV[MPPT_ZERO] <= BATT_MAX_UPPER_V)) {
-
-			}
-		}
-	}
-
 }
 
 /**
@@ -307,7 +285,7 @@ static void InitController(void) {
 	/* MPPT CAN Initialization */
 	can_init_MPPT();
 	Delay(DELAY_HALFSEC); // Give the MPPTs time to initialize themselves.
-	for(i = 0; i <= MPPT_TWO; i++) { ToggleMPPT(i, MPPT_OFF); } // Disable MPPTs initially.
+	for(i = 0; i <= MPPT_TWO; i++) { ToggleMPPT(i, OFF); } // Disable MPPTs initially.
 	P4OUT &= ~LED5; // 0 1 0 1
 
 	/* Initialize RS-232 */

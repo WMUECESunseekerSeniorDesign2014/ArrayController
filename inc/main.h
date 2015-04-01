@@ -16,8 +16,6 @@
 */
 typedef enum { TRUE, FALSE } bool;
 
-typedef enum { MPPT_ON, MPPT_OFF } MPPTState;
-
 typedef enum { ON, OFF } FunctionalState;
 
 /**
