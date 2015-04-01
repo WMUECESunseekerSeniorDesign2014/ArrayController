@@ -18,6 +18,8 @@ typedef enum { TRUE, FALSE } bool;
 
 typedef enum { MPPT_ON, MPPT_OFF } MPPTState;
 
+typedef enum { ON, OFF } FunctionalState;
+
 /**
  * @enum MainState
  * Describes the main state that the microcontroller is in.

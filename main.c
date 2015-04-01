@@ -7,6 +7,9 @@ static void InitController(void);
 static void GeneralOperation(void);
 static void ChargeOnly(void);
 static void HumanInterruptCheck(void);
+static void ToggleMPPT(unsigned int mppt, MPPTState state);
+static int GetMPPTData(unsigned int mppt);
+void ToggleError(FunctionalState toggle);
 /**@}*/
 
 CarState carState = INIT; // The state that the car is in.
@@ -137,11 +140,26 @@ static void ToggleMPPT(unsigned int mppt, MPPTState state) {
  * Get a data dump from the MPPTs.
  * @todo Austin is still testing this, so it may change later.
  */
-static void GetMPPTData(unsigned int mppt) {
+static int GetMPPTData(unsigned int mppt) {
 	can_MPPT.address = AC_CAN_BASE1 + mppt;
 	can_sendRTR(0); //Send RTR request
 	can_transmit_MPPT();
 	can_sendRTR(1);
+
+	// Wait until the response is sent from the MPPT, and then read it.
+	if((P1IN & CAN_INTn0) == 0x00) {
+		can_receive_MPPT();
+	}
+
+	switch(can_MPPT.status) {
+	case CAN_ERROR:
+		ToggleError(ON);
+		return 0;
+	case CAN_OK:
+	case CAN_RTR:
+		ToggleError(OFF);
+		return 1;
+	}
 }
 
 /**
@@ -204,7 +222,21 @@ static void ChargeOnly(void) {
  * 504 message by setting dc_504_flag = TRUE but it will not move to the next state.
  */
 static void IdleController(void) {
+	int i;
+	int status = 0;
 
+	// Loop and get data from MPPT.
+	for(i = 0; i <= MPPT_TWO; i++) {
+		if(status == 0) {
+			i = 0;
+		}
+
+		status = GetMPPTData(i);
+
+		if(status == 1) {
+
+		}
+	}
 }
 
 /**
@@ -225,7 +257,7 @@ static void InitController(void) {
 	timerA_init();
 	timerB_init();
 	// Turn off the error light.
-	P1OUT &= ~LED1;
+	ToggleError(OFF);
 	P4OUT |= LED2 | LED3 | LED4 | LED5; // Turn all of the LEDs off.
 	P4OUT &= ~(LED5); // 0 0 0 1
 
@@ -300,6 +332,17 @@ extern void Delay(unsigned long delayConstant) {
 			 *  a variable parameter passed to it. Therefore, the default case
 			 *  does nothing.*/
 			break;
+	}
+}
+
+/**
+ * Toggle the error LED on or off.
+ */
+void ToggleError(FunctionalState toggle) {
+	if(toggle == ON) {
+		P1OUT &= ~LED1;
+	} else {
+		P1OUT |= LED1;
 	}
 }
 
