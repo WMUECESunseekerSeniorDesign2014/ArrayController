@@ -224,18 +224,20 @@ static void ChargeOnly(void) {
 static void IdleController(void) {
 	int i;
 	int status = 0;
+	unsigned int arrayV[3];
+	unsigned int battV[3];
 
 	// Loop and get data from MPPT.
 	for(i = 0; i <= MPPT_TWO; i++) {
+		// If the previous call to GetMPPTData() resulted in an error, roll back i.
 		if(status == 0) {
-			i = 0;
+			i = (i <= 1) ? 0 : (i - 1);
+		} else { // If the RTR was successful, store the data.
+			arrayV[i] = can_MPPT.data.data_u16[0];
+			battV[i] = can_MPPT.data.data_u16[2];
 		}
 
 		status = GetMPPTData(i);
-
-		if(status == 1) {
-
-		}
 	}
 }
 
