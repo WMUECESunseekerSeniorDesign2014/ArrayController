@@ -233,8 +233,9 @@ static void IdleController(void) {
 		if(status == 0) {
 			i = (i <= 1) ? 0 : (i - 1);
 		} else { // If the RTR was successful, store the data.
-			arrayV[i] = can_MPPT.data.data_u16[0];
-			battV[i] = can_MPPT.data.data_u16[2];
+			// Change the data from mV to V for simple comparisons.
+			arrayV[i] = can_MPPT.data.data_u16[0] / MPPT_AV_SCALE;
+			battV[i] = can_MPPT.data.data_u16[2] / MPPT_BV_SCALE;
 		}
 
 		status = GetMPPTData(i);
