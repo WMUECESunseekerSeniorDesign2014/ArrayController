@@ -239,6 +239,9 @@ static void InitController(void) {
 
 	// Set up the LEDs for the next state.
 	P4OUT |= LED2 | LED3 | LED4 | LED5;
+
+	// Turn off the error light.
+	P1OUT &= ~LED1;
 }
 
 /**
