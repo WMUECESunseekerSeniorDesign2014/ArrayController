@@ -207,35 +207,35 @@ static void InitController(void) {
 	/** @todo Do we need RTC init? */
 
 	/* Initialize the ADC. */
-	P4OUT &= ~LED4;
-	P4OUT |= LED5; // 0 0 1 0
 	adc_spi_init();	/*Setup tranmission to ADC*/
 	adc_init();	/*Initialize ADC*/
 	adc_selfcal();	/*Run a selfcal on all channels*/
 	adc_read_convert(0);
+	P4OUT &= ~LED4;
+	P4OUT |= LED5; // 0 0 1 0
 
 	/* ADC Diagnostics */
-	P4OUT &= ~LED5; // 0 0 1 1
 	adc_selfcal(); // Calibrate all of the channels.
+	P4OUT &= ~LED5; // 0 0 1 1
 
 	/* Main CAN Initialization */
+	canspi_init();
+	can_init_MAIN();
 	P4OUT &= ~LED3; // 0 1 0 0
 	P4OUT |= (LED4 | LED5);
-	canspi_init();
-	can_init_MPPT();
-	can_init_MAIN();
 
 	/* MPPT CAN Initialization */
+	can_init_MPPT();
 	P4OUT &= ~LED5; // 0 1 0 1
 
 	/* Initialize RS-232 */
-	P4OUT &= ~(LED3 | LED4); // 0 1 1 0 Needs fixing
-	P4OUT |= (LED5);
 	// No interrupt has come through yet, so mark this to FALSE initially.
 	put_status_PC = FALSE;
 	Prompt_Active = FALSE;
 	AC2PC_init();
 	UCA0IE |= UCRXIE; // Enable interrupts on the RX line.
+	P4OUT &= ~(LED3 | LED4); // 0 1 1 0
+	P4OUT |= (LED5);
 
 	// Set up the LEDs for the next state.
 	P4OUT |= LED2 | LED3 | LED4 | LED5;
