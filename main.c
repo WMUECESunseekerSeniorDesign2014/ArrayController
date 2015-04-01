@@ -240,6 +240,28 @@ static void IdleController(void) {
 
 		status = GetMPPTData(i);
 	}
+
+	// If the battery voltages as reported by the MPPTs are different, then a fuse
+	// has blown. Note that if the first statement is true, the system will not check
+	// the second; if the first statement is false, the system will check the second
+	// statement and since battV[MPPT_ZERO] == battV[MPPT_ONE], a third comparison
+	// is not needed.
+	if((battV[MPPT_ZERO] != battV[MPPT_ONE]) || (battV[MPPT_ONE] != battV[MPPT_TWO])) {
+
+	}
+
+	// Broke this into multiple if statements for readability. This verifies that the
+	// voltages the MPPTs read from the batteries are different and they're not within
+	// the maximum voltage range. If the inner most if statement is reached, then the
+	// array is not connected to the rest of the car!
+	if(battV[MPPT_ZERO] == battV[MPPT_ONE]) {
+		if(battV[MPPT_ONE] == battV[MPPT_TWO]) {
+			if((battV[MPPT_ZERO] >= BATT_MAX_LOWER_V) && (battV[MPPT_ZERO] <= BATT_MAX_UPPER_V)) {
+
+			}
+		}
+	}
+
 }
 
 /**

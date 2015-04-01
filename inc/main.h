@@ -64,6 +64,10 @@ void timerB_init( void );
 #define MPPT_AC_SCALE 1000 // Array Current
 #define MPPT_BV_SCALE 100  // Battery Voltage
 #define MPPT_T_SCALE  100  // Temperature
+
+// The maximum voltage range that the batteries can be in is between 120V-160V.
+#define BATT_MAX_UPPER_V 160
+#define BATT_MAX_LOWER_V 120
 /**@}*/
 
 /**
