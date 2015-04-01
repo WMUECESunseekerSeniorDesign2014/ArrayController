@@ -197,14 +197,17 @@ static void ChargeOnly(void) {
  *  5. Initialize RS-232
  */
 static void InitController(void) {
+	int i = 0;
+
 	/* Vital Initializations */
 	io_init();
 	clock_init();
 	timerA_init();
 	timerB_init();
+	// Turn off the error light.
+	P1OUT &= ~LED1;
 	P4OUT |= LED2 | LED3 | LED4 | LED5; // Turn all of the LEDs off.
 	P4OUT &= ~(LED5); // 0 0 0 1
-	/** @todo Do we need RTC init? */
 
 	/* Initialize the ADC. */
 	adc_spi_init();	/*Setup tranmission to ADC*/
@@ -226,6 +229,8 @@ static void InitController(void) {
 
 	/* MPPT CAN Initialization */
 	can_init_MPPT();
+	Delay(DELAY_HALFSEC); // Give the MPPTs time to initialize themselves.
+	for(i = 0; i <= MPPT_TWO; i++) { ToggleMPPT(i, MPPT_OFF); } // Disable MPPTs initially.
 	P4OUT &= ~LED5; // 0 1 0 1
 
 	/* Initialize RS-232 */
@@ -239,9 +244,6 @@ static void InitController(void) {
 
 	// Set up the LEDs for the next state.
 	P4OUT |= LED2 | LED3 | LED4 | LED5;
-
-	// Turn off the error light.
-	P1OUT &= ~LED1;
 }
 
 /**
@@ -252,7 +254,9 @@ static void InitController(void) {
  *
  * @param[in] delayConstant One of the constants defined in Delay Timings.
  */
-extern void Delay(unsigned int delayConstant) {
+extern void Delay(unsigned long delayConstant) {
+	int i;
+
 	switch(delayConstant) {
 		case DELAY_100:
 			__delay_cycles(DELAY_100);
@@ -266,7 +270,8 @@ extern void Delay(unsigned int delayConstant) {
 		case DELAY_3750:
 			__delay_cycles(DELAY_3750);
 			break;
-		case DELAY_FOREVER: // If DELAY_FOREVER is passed in, don't do anything!
+		case DELAY_HALFSEC:
+			for(i = 0; i < 2000; i++) { __delay_cycles(DELAY_HALFSEC); }
 			break;
 		default: // If an unknown value is given, then don't perform the delay.
 			/** @note As this is necessary for the IO init function, the printf

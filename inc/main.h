@@ -38,7 +38,7 @@ typedef enum { AIN0, AIN1, AIN2, AIN3, SHUNT, SHUNT_BIAS, REF, INT12V } ADCState
 /**
  * Function Prototypes
  */
-extern void Delay( unsigned int delayConstant );
+extern void Delay( unsigned long delayConstant );
 void io_init( void );
 void clock_init( void );
 void SetVCoreUp( unsigned int level );
@@ -66,7 +66,7 @@ void timerB_init( void );
 #define DELAY_500 8000
 #define DELAY_1000 16000
 #define DELAY_3750 60000 // 6.75 ms delay.
-#define DELAY_FOREVER 65535 // Run test forever.
+#define DELAY_HALFSEC 4000000000 // Needs to be run 2000 times to get a 0.5s delay.
 /**@}*/
 
 /**
