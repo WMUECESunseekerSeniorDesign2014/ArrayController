@@ -62,15 +62,15 @@ int main(void) {
     		break;
 
     	case IDLE:
+    		if(int_enable_flag == FALSE) {
+				_EINT(); // Enable interrupts
+				int_enable_flag = TRUE;
+			}
 			P4OUT &= ~(LED4 | LED5); // Turn on two LEDs to show we're idling.
 			IdleController();
     		break;
 
     	case RUNNING:
-    		if(int_enable_flag == FALSE) {
-    			_EINT(); // Enable interrupts
-    			int_enable_flag = TRUE;
-    		}
     		GeneralOperation();
     		break;
 
