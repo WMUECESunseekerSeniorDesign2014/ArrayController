@@ -328,6 +328,7 @@ static void IdleController(void) {
 	// dc_504_flag should get set in the Main CAN controller interrupt.
 	if(error_flag == FALSE && dc_504_flag == TRUE) {
 		carState = RUNNING;
+		P4OUT |= (LED4 | LED5);
 	}
 
 	ToggleError(error_flag);
