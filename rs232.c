@@ -9,8 +9,6 @@
 
 /*
  * External RS-232 Communication Code (From MCU to PC)
- *
- * Much of this is the same as the internal RS-232 code up above.
  */
 void AC2PC_init(void)
 {

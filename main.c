@@ -37,6 +37,10 @@ volatile unsigned char dr_switch_flag = 0x00;
 bool int_enable_flag = FALSE;
 bool dc_504_flag = FALSE;
 
+// Every time timA_cnt hits 512, timA_total_cnt needs to be incremented.
+short timA_cnt = 0;
+unsigned long timA_total_cnt = 0;
+
 int i;
 
 
@@ -162,6 +166,10 @@ static int GetMPPTData(unsigned int mppt) {
 	}
 }
 
+static void SendRS232Msg() {
+
+}
+
 /**
  * GeneralOperation() is where the Array Controller will be most of the time. In this function, the
  * ArrayController will:
@@ -247,7 +255,7 @@ static void IdleController(void) {
 	// statement and since battV[MPPT_ZERO] == battV[MPPT_ONE], a third comparison
 	// is not needed.
 	if((battV[MPPT_ZERO] != battV[MPPT_ONE]) || (battV[MPPT_ONE] != battV[MPPT_TWO])) {
-
+		// Dump data via RS-232 and CAN every second.
 	}
 
 	// Broke this into multiple if statements for readability. This verifies that the
@@ -257,7 +265,7 @@ static void IdleController(void) {
 	if(battV[MPPT_ZERO] == battV[MPPT_ONE]) {
 		if(battV[MPPT_ONE] == battV[MPPT_TWO]) {
 			if((battV[MPPT_ZERO] >= BATT_MAX_LOWER_V) && (battV[MPPT_ZERO] <= BATT_MAX_UPPER_V)) {
-
+				// Dump data via RS-232 and CAN every second.
 			}
 		}
 	}
@@ -475,7 +483,7 @@ void io_init( void )
 void timerA_init(void)
 {
  /*Set up Watch Crystal and TIMER A*/
- TA0CCR0 = 127; // Interrupt every 1/512 a seconds.
+ TA0CCR0 = 127; // Interrupt every 1/512 a second.
  /*The TACCRO initializes the value of Timer A to count up to before setting CCIFG flag
  (255 for 1/128 sec) (8191 1/4 sec) (16383 1/2 sec) (32767 1 sec)  tick time*/
  TA0CCTL0 = 0x0010;	/*Enables CCIFG to cause an interrupt*/
@@ -658,8 +666,12 @@ __interrupt void P2_ISR(void)
 #pragma vector = TIMER0_A0_VECTOR
  __interrupt void TIMERA_ISR(void)
 {
-	 P1OUT ^= LED0;
-	 TA0CCTL0 &= 0xFFFE;	/*Clear Flags*/
+	 if(++timA_cnt == 513) { // If timA_cnt is equal to 513, roll over.
+		 timA_cnt = 1;
+		 if(++timA_total_cnt == ULONG_MAX) { // This should never happen.
+			 timA_total_cnt = 0;
+		 }
+	 }
 }
 
  /*

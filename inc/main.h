@@ -5,6 +5,7 @@
 #define MAIN_H_
 
 #include<msp430x54xa.h>
+#include "limits.h"
 #include "./can.h"
 #include "./adc.h"
 #include "./rs232.h"
