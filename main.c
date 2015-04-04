@@ -157,13 +157,14 @@ static int GetMPPTData(unsigned int mppt) {
 	}
 
 	switch(can_MPPT.status) {
-	case CAN_ERROR:
-		ToggleError(TRUE);
-		return 0;
-	case CAN_OK:
-	case CAN_RTR:
-		ToggleError(FALSE);
-		return 1;
+		case CAN_OK:
+		case CAN_RTR:
+			ToggleError(FALSE);
+			return 1;
+		case CAN_ERROR:
+			ToggleError(TRUE);
+		default:
+			return 0;
 	}
 }
 
@@ -294,6 +295,33 @@ static void IdleController(void) {
 					error_flag = TRUE;
 				}
 			}
+		}
+	}
+
+	// Poll CAN interrupt to see if we have received the 504 message.
+	if((P4IN & (CAN_RX1n2 | CAN_RX2n2)) == 0x00) {
+		can_receive_MAIN();
+
+		if(can_MAIN.status == CAN_OK) {
+			switch(can_MAIN.address) {
+				case DC_CAN_BASE + DC_SWITCH:
+					dc_504_flag = TRUE;
+					/** @todo Do we need to do anything with the data sent with 504? */
+					break;
+				default:
+					// Do nothing because we don't know what the message is.
+					break;
+			}
+		} else if(can_MAIN.status == CAN_RTR) {
+			can_MAIN.address = AC_CAN_MAIN_BASE; // Send out battery stats since we're still idling
+												 // and no coulomb count has occurred.
+			can_MAIN.data.data_u16[0] = battV[MPPT_ZERO];
+			can_MAIN.data.data_u16[1] = battV[MPPT_ONE];
+			can_MAIN.data.data_u16[2] = battV[MPPT_TWO];
+			can_MAIN.data.data_u16[3] = 0; // No use for this yet.
+			can_transmit_MAIN();
+		} else {
+			error_flag = TRUE;
 		}
 	}
 
