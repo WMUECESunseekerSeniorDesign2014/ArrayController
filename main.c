@@ -347,7 +347,7 @@ extern void Delay(unsigned long delayConstant) {
 			__delay_cycles(DELAY_3750);
 			break;
 		case DELAY_HALFSEC:
-			for(i = 0; i < 2000; i++) { __delay_cycles(DELAY_HALFSEC); }
+			for(i = 0; i < 2000; i++) { __delay_cycles(DELAY_HALFSEC); } // 2000 iterations will give a half second delay.
 			break;
 		default: // If an unknown value is given, then don't perform the delay.
 			/** @note As this is necessary for the IO init function, the printf
@@ -475,7 +475,7 @@ void io_init( void )
 void timerA_init(void)
 {
  /*Set up Watch Crystal and TIMER A*/
- TA0CCR0 = 32767;
+ TA0CCR0 = 127; // Interrupt every 1/512 a seconds.
  /*The TACCRO initializes the value of Timer A to count up to before setting CCIFG flag
  (255 for 1/128 sec) (8191 1/4 sec) (16383 1/2 sec) (32767 1 sec)  tick time*/
  TA0CCTL0 = 0x0010;	/*Enables CCIFG to cause an interrupt*/
