@@ -1,10 +1,3 @@
-/*
- * rs232.c
- *
- *  Created on: Dec 15, 2014
- *      Author: Joel
- *      Based off of Dr. Bazuin's BPS code.
- */
 #include "./inc/main.h"
 
 /*

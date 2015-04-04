@@ -6,6 +6,7 @@
 
 #include<msp430x54xa.h>
 #include "limits.h"
+#include "stdio.h"
 #include "./can.h"
 #include "./adc.h"
 #include "./rs232.h"
@@ -50,6 +51,7 @@ void timerB_init( void );
 #define SMCLK_RATE		8000000		// Hz
 #define ACLK_RATE		32768		// Hz
 #define TICK_RATE		100			// Hz
+#define TIMA_ONE_SEC	512			// 512 interrupts on TIMA = 1 second.
 
 /**
  * @defgroup mpptDefines MPPT Definitions

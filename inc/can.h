@@ -130,6 +130,11 @@ void 					can_mod_2( unsigned char address, unsigned char mask, unsigned char da
 #define	AC_CAN_ADDRESS2		0x01		// Address to specify MPPT 2
 #define	AC_CAN_ADDRESS3		0x02		// Address to specify MPPT 3
 
+
+/** @todo Talk to Austin about how the main CAN defines should be. */
+#define AC_CAN_MAIN_BASE	0x620
+#define AC_BLOWN_FUSE		0x01
+#define AC_ARR_CABLE		0x02
 //More defines to come!
 
 // Motor controller CAN base address and packet offsets

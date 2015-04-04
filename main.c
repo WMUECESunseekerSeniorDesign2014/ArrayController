@@ -4,12 +4,13 @@
  * @defgroup mainProto Private Main Function Prototypes
  */
 static void InitController(void);
+static void IdleController(void);
 static void GeneralOperation(void);
 static void ChargeOnly(void);
 static void HumanInterruptCheck(void);
 static void ToggleMPPT(unsigned int mppt, FunctionalState state);
 static int GetMPPTData(unsigned int mppt);
-void ToggleError(FunctionalState toggle);
+void ToggleError(bool toggle);
 /**@}*/
 
 CarState carState = INIT; // The state that the car is in.
@@ -62,7 +63,7 @@ int main(void) {
 
     	case IDLE:
 			P4OUT &= ~(LED4 | LED5); // Turn on two LEDs to show we're idling.
-			/** @todo Poll for the 504 message. This should be added during system testing. */
+			IdleController();
     		break;
 
     	case RUNNING:
@@ -127,7 +128,7 @@ static void HumanInterruptCheck(void) {
 static void ToggleMPPT(unsigned int mppt, FunctionalState state) {
 	can_MPPT.address = AC_CAN_BASE2 + mppt;
 
-	if(state == MPPT_ON) {
+	if(state == ON) {
 		can_MPPT.data.data_u16[0] = 0x0001;
 	} else {
 		can_MPPT.data.data_u16[0] = 0x0000;
@@ -157,17 +158,13 @@ static int GetMPPTData(unsigned int mppt) {
 
 	switch(can_MPPT.status) {
 	case CAN_ERROR:
-		ToggleError(ON);
+		ToggleError(TRUE);
 		return 0;
 	case CAN_OK:
 	case CAN_RTR:
-		ToggleError(OFF);
+		ToggleError(FALSE);
 		return 1;
 	}
-}
-
-static void SendRS232Msg() {
-
 }
 
 /**
@@ -234,6 +231,8 @@ static void IdleController(void) {
 	int status = 0;
 	unsigned int arrayV[3];
 	unsigned int battV[3];
+	char buffer[80];
+	bool error_flag = FALSE;
 
 	// Loop and get data from MPPT.
 	for(i = 0; i <= MPPT_TWO; i++) {
@@ -256,6 +255,20 @@ static void IdleController(void) {
 	// is not needed.
 	if((battV[MPPT_ZERO] != battV[MPPT_ONE]) || (battV[MPPT_ONE] != battV[MPPT_TWO])) {
 		// Dump data via RS-232 and CAN every second.
+		if(timA_cnt >= TIMA_ONE_SEC) {
+			AC2PC_puts("BLOWN FUSE\r\n");
+			sprintf(buffer, "0: %d V, 1: %d V, 2: %d V\r\n", battV[MPPT_ZERO], battV[MPPT_ONE], battV[MPPT_TWO]);
+			AC2PC_puts(buffer);
+
+			can_MAIN.address = AC_CAN_MAIN_BASE + AC_BLOWN_FUSE; /** @todo Who do I send these messages to? */
+			can_MAIN.data.data_u16[0] = battV[MPPT_ZERO];
+			can_MAIN.data.data_u16[1] = battV[MPPT_ONE];
+			can_MAIN.data.data_u16[2] = battV[MPPT_TWO];
+			can_MAIN.data.data_u16[3] = 0; // No use for this yet.
+			can_transmit_MAIN();
+
+			error_flag = TRUE;
+		}
 	}
 
 	// Broke this into multiple if statements for readability. This verifies that the
@@ -266,9 +279,30 @@ static void IdleController(void) {
 		if(battV[MPPT_ONE] == battV[MPPT_TWO]) {
 			if((battV[MPPT_ZERO] >= BATT_MAX_LOWER_V) && (battV[MPPT_ZERO] <= BATT_MAX_UPPER_V)) {
 				// Dump data via RS-232 and CAN every second.
+				if(timA_cnt >= TIMA_ONE_SEC) {
+					AC2PC_puts("ARRAY UNCONNECTED\r\n");
+					sprintf(buffer, "0: %d V, 1: %d V, 2: %d V\r\n", battV[MPPT_ZERO], battV[MPPT_ONE], battV[MPPT_TWO]);
+					AC2PC_puts(buffer);
+
+					can_MAIN.address = AC_CAN_MAIN_BASE + AC_ARR_CABLE; /** @todo Who do I send these messages to? */
+					can_MAIN.data.data_u16[0] = battV[MPPT_ZERO];
+					can_MAIN.data.data_u16[1] = battV[MPPT_ONE];
+					can_MAIN.data.data_u16[2] = battV[MPPT_TWO];
+					can_MAIN.data.data_u16[3] = 0; // No use for this yet.
+					can_transmit_MAIN();
+
+					error_flag = TRUE;
+				}
 			}
 		}
 	}
+
+	// dc_504_flag should get set in the Main CAN controller interrupt.
+	if(error_flag == FALSE && dc_504_flag == TRUE) {
+		carState = RUNNING;
+	}
+
+	ToggleError(error_flag);
 }
 
 /**
@@ -289,7 +323,7 @@ static void InitController(void) {
 	timerA_init();
 	timerB_init();
 	// Turn off the error light.
-	ToggleError(OFF);
+	ToggleError(FALSE);
 	P4OUT |= LED2 | LED3 | LED4 | LED5; // Turn all of the LEDs off.
 	P4OUT &= ~(LED5); // 0 0 0 1
 
@@ -370,8 +404,8 @@ extern void Delay(unsigned long delayConstant) {
 /**
  * Toggle the error LED on or off.
  */
-void ToggleError(FunctionalState toggle) {
-	if(toggle == ON) {
+void ToggleError(bool toggle) {
+	if(toggle == TRUE) {
 		P1OUT &= ~LED1;
 	} else {
 		P1OUT |= LED1;
@@ -666,7 +700,7 @@ __interrupt void P2_ISR(void)
 #pragma vector = TIMER0_A0_VECTOR
  __interrupt void TIMERA_ISR(void)
 {
-	 if(++timA_cnt == 513) { // If timA_cnt is equal to 513, roll over.
+	 if(++timA_cnt == TIMA_ONE_SEC + 1) { // If timA_cnt is equal to 513, roll over.
 		 timA_cnt = 1;
 		 if(++timA_total_cnt == ULONG_MAX) { // This should never happen.
 			 timA_total_cnt = 0;
