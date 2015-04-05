@@ -34,6 +34,8 @@ typedef enum { INIT, IDLE, RUNNING, CHARGING } CarState;
  * @enum ADCState
  * Describes which peripheral the ADC is attempting to read from. Right after INIT has happened,
  * we will start conversions.
+ *
+ * @note AIN0-AIN2 are the temperature sensors while AIN3 is the reference voltage for the sensor.
  */
 typedef enum { AIN0, AIN1, AIN2, AIN3, SHUNT, SHUNT_BIAS, REF, INT12V } ADCState;
 
@@ -65,12 +67,24 @@ void timerB_init( void );
 #define MPPT_AC_SCALE 1000 // Array Current
 #define MPPT_BV_SCALE 100  // Battery Voltage
 #define MPPT_T_SCALE  100  // Temperature
+/**@}*/
+
+// Change me if TIMA_ONE_SEC changes!
+#define C_CNT_SHIFT	  9;
 
 // The maximum voltage range that the batteries can be in is between 120V-160V.
 #define BATT_MAX_UPPER_V 160
 #define BATT_MAX_LOWER_V 120
 #define BATT_MAX_I		 9 /** @todo Check if this is the maximum amount of current that the batteries can supply. */
-/**@}*/
+
+#define ADC_REF			 2.5 // Reference voltage.
+#define ADC_RESO		 16777215 // 24-bit resolution for the ADC minus one.
+#define SHUNT_OHM		 0.005 // Shunt Resistance.
+
+// Percentage thresholds for turning on the MPPTs.
+#define BATT_HIGH 75 // Turn on one MPPT.
+#define BATT_MEDI 50 // Turn on two MPPTs.
+#define BATT_LOW  25 // Turn on three MPPTs.
 
 /**
  * @defgroup delayDefines Delay Timings

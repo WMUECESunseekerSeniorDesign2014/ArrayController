@@ -11,6 +11,7 @@ static void HumanInterruptCheck(void);
 static void ToggleMPPT(unsigned int mppt, FunctionalState state);
 static int GetMPPTData(unsigned int mppt);
 void ToggleError(bool toggle);
+void CoulombCount(void);
 /**@}*/
 
 CarState carState = INIT; // The state that the car is in.
@@ -41,6 +42,10 @@ bool dc_504_flag = FALSE;
 // Every time timA_cnt hits 512, timA_total_cnt needs to be incremented.
 short timA_cnt = 0;
 unsigned long timA_total_cnt = 0;
+
+signed long coulombCnt = 0;
+signed long shuntCurrent = 0;
+signed int battPercentage = 0;
 
 int i;
 
@@ -104,7 +109,6 @@ static void HumanInterruptCheck(void) {
 	{
 		 dr_switch_flag &= 0x08;
 		 P4OUT ^= LED2;
-
 	}
 
 	/*Driver Switch 2 Interrupt Received*/
@@ -179,6 +183,30 @@ static int GetMPPTData(unsigned int mppt) {
  */
 static void GeneralOperation(void) {
 
+	// One second has passed.
+	if(timA_cnt == TIMA_ONE_SEC) {
+		CoulombCount();
+		battPercentage = ((BATT_MAX_I - coulombCnt) / BATT_MAX_I) * 100; // Convert to a percentage.
+
+		// Enable/disable the MPPTs based on the percentage that was calculated.
+		if(battPercentage <= BATT_HIGH) {
+			ToggleMPPT(MPPT_ZERO, ON);
+		} else {
+			ToggleMPPT(MPPT_ZERO, OFF);
+		}
+
+		if(battPercentage <= BATT_MEDI) {
+			ToggleMPPT(MPPT_ONE, ON);
+		} else {
+			ToggleMPPT(MPPT_ONE, OFF);
+		}
+
+		if(battPercentage <= BATT_LOW) {
+			ToggleMPPT(MPPT_TWO, ON);
+		} else {
+			ToggleMPPT(MPPT_TWO, OFF);
+		}
+	}
 
 
 	/*Check for CAN packet reception on CAN_MPPT (Polling)*/
@@ -397,6 +425,15 @@ static void InitController(void) {
 
 	// Set up the LEDs for the next state.
 	P4OUT |= LED2 | LED3 | LED4 | LED5;
+}
+
+void CoulombCount(void) {
+	signed long shuntVal = 0;
+
+	// Convert the value read from the shunt back into a voltage.
+	shuntVal = ((adc_in((char)SHUNT) - adc_in((char)SHUNT_BIAS)) * ADC_REF) / ADC_RESO;
+	shuntCurrent /= SHUNT_OHM; // Get the current.
+	coulombCnt += (shuntCurrent - coulombCnt) >> C_CNT_SHIFT;
 }
 
 /**
