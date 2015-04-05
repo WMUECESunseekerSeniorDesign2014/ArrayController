@@ -108,27 +108,6 @@ static void HumanInterruptCheck(void) {
 		 int_op_flag &= 0x04;
 		 P4OUT ^= LED5;
 	}
-
-	/*Driver Switch 1 Interrupt Received*/
-	if((P2IN & DRIVER_SW1) != DRIVER_SW1)
-	{
-		 dr_switch_flag &= 0x08;
-		 P4OUT ^= LED2;
-	}
-
-	/*Driver Switch 2 Interrupt Received*/
-	if((P2IN & DRIVER_SW2) != DRIVER_SW2)
-	{
-		dr_switch_flag &= 0x01;
-		P4OUT ^= LED3;
-	}
-
-	/*Driver Switch 3 Interrupt Received*/
-	if((P2IN & DRIVER_SW3) != DRIVER_SW3)
-	{
-		dr_switch_flag &= 0x04;
-		P4OUT ^= LED4;
-	}
 }
 
 /**
@@ -208,30 +187,33 @@ static void GeneralOperation(void) {
 	// One second has passed.
 	if(timA_cnt == TIMA_ONE_SEC) {
 		CoulombCount();
-		battPercentage = ((BATT_MAX_I - coulombCnt) / BATT_MAX_I) * 100; // Convert to a percentage.
 
-		// Enable/disable the MPPTs based on the percentage that was calculated.
-		if(battPercentage <= BATT_HIGH) {
-			ToggleMPPT(MPPT_ZERO, ON);
-		} else {
-			ToggleMPPT(MPPT_ZERO, OFF);
-		}
-
-		if(battPercentage <= BATT_MEDI) {
-			ToggleMPPT(MPPT_ONE, ON);
-		} else {
-			ToggleMPPT(MPPT_ONE, OFF);
-		}
-
-		if(battPercentage <= BATT_LOW) {
-			ToggleMPPT(MPPT_TWO, ON);
-		} else {
-			ToggleMPPT(MPPT_TWO, OFF);
-		}
+		/** @todo Figure out if Dr. Bazuin wants this functionality. */
+//		battPercentage = ((BATT_MAX_I - coulombCnt) / BATT_MAX_I) * 100; // Convert to a percentage.
+//
+//		// Enable/disable the MPPTs based on the percentage that was calculated.
+//		if(battPercentage <= BATT_HIGH) {
+//			ToggleMPPT(MPPT_ZERO, ON);
+//		} else {
+//			ToggleMPPT(MPPT_ZERO, OFF);
+//		}
+//
+//		if(battPercentage <= BATT_MEDI) {
+//			ToggleMPPT(MPPT_ONE, ON);
+//		} else {
+//			ToggleMPPT(MPPT_ONE, OFF);
+//		}
+//
+//		if(battPercentage <= BATT_LOW) {
+//			ToggleMPPT(MPPT_TWO, ON);
+//		} else {
+//			ToggleMPPT(MPPT_TWO, OFF);
+//		}
 
 		ReportCoulombCount();
 	}
 
+	// Enable/disable MPPTs based on driver switch status.
 
 	/*Check for CAN packet reception on CAN_MPPT (Polling)*/
 	if((P1IN & CAN_INTn0) == 0x00)
@@ -447,6 +429,12 @@ static void InitController(void) {
 	UCA0IE |= UCRXIE; // Enable interrupts on the RX line.
 	P4OUT &= ~(LED3 | LED4); // 0 1 1 0
 	P4OUT |= (LED5);
+
+	/* GPIO Interrupts */
+	P2IE = DRIVER_SW1 | DRIVER_SW2 | DRIVER_SW3;
+	// Driver switches interrupt on low-to-high transitions.
+	P2IES = ~(DRIVER_SW1 | DRIVER_SW2 | DRIVER_SW3);
+	P4OUT &= ~(LED5); // 0 1 1 1
 
 	// Set up the LEDs for the next state.
 	P4OUT |= LED2 | LED3 | LED4 | LED5;
@@ -796,6 +784,8 @@ __interrupt void P1_ISR(void)
 	#pragma vector=PORT2_VECTOR
 __interrupt void P2_ISR(void)
 {
+  char inputStatus = 0;
+
   switch(__even_in_range(P2IV,16))
   {
   case 0:
@@ -808,13 +798,37 @@ __interrupt void P2_ISR(void)
     adc_rdy_flag |= 0x04;
     break;
   case 8:                                   // Vector 2.3 - DRIVER_SW1
-	dr_switch_flag |= 0x08;
+	inputStatus = P4IN & DRIVER_SW1;
+
+	if(inputStatus = 0) { // Driver switch is off.
+		dr_switch_flag &= ~(0x08);
+		P2IES &= ~(DRIVER_SW1); // Require a low-to-high transition.
+	} else { // Driver switch is on.
+		dr_switch_flag |= 0x08;
+		P2IES |= DRIVER_SW1; // Require a high-to-low transition.
+	}
     break;
   case 10:                                  // Vector 2.4 - DRIVER_SW2
-    dr_switch_flag |= 0x01;
+	inputStatus = P4IN & DRIVER_SW2;
+
+	if(inputStatus = 0) { // Driver switch is off.
+		dr_switch_flag &= ~(0x01);
+		P2IES &= ~(DRIVER_SW2); // Require a low-to-high transition.
+	} else { // Driver switch is on.
+		dr_switch_flag |= 0x01;
+		P2IES |= DRIVER_SW2; // Require a high-to-low transition.
+	}
     break;
   case 12:                                  // Vector 2.5 - DRIVER_SW3
-	dr_switch_flag |= 0x04;
+	inputStatus = P4IN & DRIVER_SW3;
+
+	if(inputStatus = 0) { // Driver switch is off.
+		dr_switch_flag &= ~(0x04);
+		P2IES &= ~(DRIVER_SW3); // Require a low-to-high transition.
+	} else { // Driver switch is on.
+		dr_switch_flag |= 0x04;
+		P2IES |= DRIVER_SW3; // Require a high-to-low transition.
+	}
     break;
   case 14:                                  // Vector 2.6 -
     break;
