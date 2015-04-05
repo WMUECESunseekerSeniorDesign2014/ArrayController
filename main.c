@@ -13,6 +13,7 @@ static int GetMPPTData(unsigned int mppt);
 static void ToggleError(bool toggle);
 static void CoulombCount(void);
 static void ReportCoulombCount(void);
+static int ConvertADCVal(ADCState state);
 /**@}*/
 
 CarState carState = INIT; // The state that the car is in.
@@ -48,6 +49,7 @@ char mppt_status = 0;
 short timA_cnt = 0;
 unsigned long timA_total_cnt = 0;
 
+signed long tempOne, tempTwo, temp3, refTemp, internal12V;
 unsigned long coulombCnt = 0;
 unsigned long shuntCurrent = 0;
 unsigned int battVoltage = 0;
@@ -131,7 +133,7 @@ static void ToggleMPPT(unsigned int mppt, FunctionalState state) {
 	can_transmit_MPPT();
 
 	// Keeps track of the status of each MPPT.
-	if(toggle == ON) {
+	if(state == ON) {
 		switch(mppt) {
 			case MPPT_ZERO:
 				mppt_status |= 0x01;
@@ -194,11 +196,12 @@ static int GetMPPTData(unsigned int mppt) {
  * ArrayController will:
  *  * Calculate the state-of-charge (coulomb count).
  *  * Dump telemetry data out to the CAN bus.
- *  * Make decisions based on the state-of-charge to enable/disable the MPPTs.
  *  * Poll the driver switches to see if the driver is requesting that the MPPTs turn off.
  *  * Poll the thermistors and, if needed, send an emergency CAN message.
  */
 static void GeneralOperation(void) {
+
+
 	// TIMA has gone off.
 	if(coulomb_count_flag == TRUE) {
 		CoulombCount();
@@ -214,35 +217,35 @@ static void GeneralOperation(void) {
 	// The first MPPT.
 	if((dr_switch_flag & 0x08) > 0) { // Switch is on.
 		if((mppt_status & 0x01) == 0) { // MPPT_ZERO is off.
-			ToggleMPPT(ON);
+			ToggleMPPT(MPPT_ZERO, ON);
 		}
 	} else {
 		if((mppt_status & 0x01) > 0) { // MPPT_ZERO is on.
-			ToggleMPPT(OFF);
+			ToggleMPPT(MPPT_ZERO, OFF);
 		}
 	}
 
 	// The second MPPT.
 	if((dr_switch_flag & 0x01) > 0) { // Switch is on.
-			if((mppt_status & 0x02) == 0) { // MPPT_ZERO is off.
-				ToggleMPPT(ON);
-			}
-		} else {
-			if((mppt_status & 0x02) > 0) { // MPPT_ZERO is on.
-				ToggleMPPT(OFF);
-			}
+		if((mppt_status & 0x02) == 0) { // MPPT_ZERO is off.
+			ToggleMPPT(MPPT_ONE, ON);
 		}
+	} else {
+		if((mppt_status & 0x02) > 0) { // MPPT_ZERO is on.
+			ToggleMPPT(MPPT_ONE, OFF);
+		}
+	}
 
 	// The third MPPT.
 	if((dr_switch_flag & 0x04) > 0) { // Switch is on.
-			if((mppt_status & 0x04) == 0) { // MPPT_ZERO is off.
-				ToggleMPPT(ON);
-			}
-		} else {
-			if((mppt_status & 0x04) > 0) { // MPPT_ZERO is on.
-				ToggleMPPT(OFF);
-			}
+		if((mppt_status & 0x04) == 0) { // MPPT_ZERO is off.
+			ToggleMPPT(MPPT_TWO, ON);
 		}
+	} else {
+		if((mppt_status & 0x04) > 0) { // MPPT_ZERO is on.
+			ToggleMPPT(MPPT_TWO, OFF);
+		}
+	}
 
 	/*Check for CAN packet reception on CAN_MPPT (Polling)*/
 	if((P1IN & CAN_INTn0) == 0x00)
@@ -265,6 +268,27 @@ static void GeneralOperation(void) {
 			ToggleError(TRUE);
 	   }
 	 }
+
+	switch(adcState) {
+		case AIN0:
+
+			break;
+		case AIN1:
+
+			break;
+		case AIN2:
+
+			break;
+		case AIN3:
+
+			break;
+		case REF:
+
+			break;
+		case INT12V:
+
+			break;
+	}
 }
 
 /**
@@ -543,6 +567,10 @@ void ReportCoulombCount(void) {
 	can_MAIN.data.data_u32[0] = power;
 	can_MAIN.data.data_u32[1] = powerAvg;
 	can_transmit_MAIN();
+}
+
+int ConvertADCVal(ADCState state) {
+
 }
 
 /**
@@ -862,7 +890,7 @@ __interrupt void P2_ISR(void)
   case 8:                                   // Vector 2.3 - DRIVER_SW1
 	inputStatus = P4IN & DRIVER_SW1;
 
-	if(inputStatus = 0) { // Driver switch is off.
+	if(inputStatus == 0) { // Driver switch is off.
 		dr_switch_flag &= ~(0x08);
 		P2IES &= ~(DRIVER_SW1); // Require a low-to-high transition.
 	} else { // Driver switch is on.
@@ -873,7 +901,7 @@ __interrupt void P2_ISR(void)
   case 10:                                  // Vector 2.4 - DRIVER_SW2
 	inputStatus = P4IN & DRIVER_SW2;
 
-	if(inputStatus = 0) { // Driver switch is off.
+	if(inputStatus == 0) { // Driver switch is off.
 		dr_switch_flag &= ~(0x01);
 		P2IES &= ~(DRIVER_SW2); // Require a low-to-high transition.
 	} else { // Driver switch is on.
@@ -884,7 +912,7 @@ __interrupt void P2_ISR(void)
   case 12:                                  // Vector 2.5 - DRIVER_SW3
 	inputStatus = P4IN & DRIVER_SW3;
 
-	if(inputStatus = 0) { // Driver switch is off.
+	if(inputStatus == 0) { // Driver switch is off.
 		dr_switch_flag &= ~(0x04);
 		P2IES &= ~(DRIVER_SW3); // Require a low-to-high transition.
 	} else { // Driver switch is on.
