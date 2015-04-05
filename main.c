@@ -131,19 +131,34 @@ static void ToggleMPPT(unsigned int mppt, FunctionalState state) {
 	can_transmit_MPPT();
 
 	// Keeps track of the status of each MPPT.
-	switch(mppt) {
-		case MPPT_ZERO:
-			mppt_status ^= 0x01;
-			break;
-		case MPPT_ONE:
-			mppt_status ^= 0x02;
-			break;
-		case MPPT_TWO:
-			mppt_status ^= 0x04;
-			break;
-		default:
-			// Someone messed up if this happens.
-			break;
+	if(toggle == ON) {
+		switch(mppt) {
+			case MPPT_ZERO:
+				mppt_status |= 0x01;
+				break;
+			case MPPT_ONE:
+				mppt_status |= 0x02;
+				break;
+			case MPPT_TWO:
+				mppt_status |= 0x04;
+				break;
+			default:
+				break;
+		}
+	} else {
+		switch(mppt) {
+			case MPPT_ZERO:
+				mppt_status &= ~(0x01);
+				break;
+			case MPPT_ONE:
+				mppt_status &= ~(0x02);
+				break;
+			case MPPT_TWO:
+				mppt_status &= ~(0x04);
+				break;
+			default:
+				break;
+		}
 	}
 }
 
@@ -189,11 +204,42 @@ static void GeneralOperation(void) {
 	// One second has passed.
 	if(coulomb_count_flag == TRUE) {
 		CoulombCount();
-
 		ReportCoulombCount();
 	}
 
 	// Enable/disable MPPTs based on driver switch status.
+	// The first MPPT.
+	if((dr_switch_flag & 0x08) > 0) { // Switch is on.
+		if((mppt_status & 0x01) == 0) { // MPPT_ZERO is off.
+			ToggleMPPT(ON);
+		}
+	} else {
+		if((mppt_status & 0x01) > 0) { // MPPT_ZERO is on.
+			ToggleMPPT(OFF);
+		}
+	}
+
+	// The second MPPT.
+	if((dr_switch_flag & 0x01) > 0) { // Switch is on.
+			if((mppt_status & 0x02) == 0) { // MPPT_ZERO is off.
+				ToggleMPPT(ON);
+			}
+		} else {
+			if((mppt_status & 0x02) > 0) { // MPPT_ZERO is on.
+				ToggleMPPT(OFF);
+			}
+		}
+
+	// The third MPPT.
+	if((dr_switch_flag & 0x04) > 0) { // Switch is on.
+			if((mppt_status & 0x04) == 0) { // MPPT_ZERO is off.
+				ToggleMPPT(ON);
+			}
+		} else {
+			if((mppt_status & 0x04) > 0) { // MPPT_ZERO is on.
+				ToggleMPPT(OFF);
+			}
+		}
 
 	/*Check for CAN packet reception on CAN_MPPT (Polling)*/
 	if((P1IN & CAN_INTn0) == 0x00)
@@ -205,7 +251,7 @@ static void GeneralOperation(void) {
 	   // - messages received at 5 times per second 16/(2*5) = 1.6 sec smoothing
 	   if(can_MPPT.status == CAN_OK)
 	   {
-			// Do something with the CAN message.
+			/** @todo Figure out what CAN messages we need to care about. */
 	   }
 	   if(can_MPPT.status == CAN_RTR)
 	   {
