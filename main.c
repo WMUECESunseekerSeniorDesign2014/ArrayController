@@ -48,7 +48,6 @@ unsigned long timA_total_cnt = 0;
 
 unsigned long coulombCnt = 0;
 unsigned long shuntCurrent = 0;
-signed int battPercentage = 0;
 unsigned int battVoltage = 0;
 unsigned long power = 0;
 unsigned long powerAvg = 0;
@@ -204,6 +203,7 @@ static int GetMPPTData(unsigned int mppt) {
  *  * Poll the thermistors and, if needed, send an emergency CAN message.
  */
 static void GeneralOperation(void) {
+	signed int battPercentage = 0;
 
 	// One second has passed.
 	if(timA_cnt == TIMA_ONE_SEC) {
