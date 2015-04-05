@@ -40,7 +40,7 @@ volatile unsigned char dr_switch_flag = 0x00;
 bool int_enable_flag = FALSE;
 bool dc_504_flag = FALSE;
 bool coulomb_count_flag = FALSE;
-bool idle_data_dump_flag = FALSE;
+bool data_dump_flag = FALSE;
 
 char mppt_status = 0;
 
@@ -199,12 +199,15 @@ static int GetMPPTData(unsigned int mppt) {
  *  * Poll the thermistors and, if needed, send an emergency CAN message.
  */
 static void GeneralOperation(void) {
-	signed int battPercentage = 0;
-
-	// One second has passed.
+	// TIMA has gone off.
 	if(coulomb_count_flag == TRUE) {
 		CoulombCount();
+	}
+
+	// One second has passed.
+	if(data_dump_flag == TRUE) {
 		ReportCoulombCount();
+		data_dump_flag = FALSE;
 	}
 
 	// Enable/disable MPPTs based on driver switch status.
@@ -272,32 +275,37 @@ static void GeneralOperation(void) {
  * @note Max voltage of the battery array is 160V.
  */
 static void ChargeOnly(void) {
+	signed int battPercentage = 0;
+
 	if(coulomb_count_flag == TRUE) {
-			CoulombCount();
-			/** @todo Figure out if Dr. Bazuin wants this functionality. */
-			battPercentage = ((BATT_MAX_I - coulombCnt) / BATT_MAX_I) * 100; // Convert to a percentage.
+		CoulombCount();
+		coulomb_count_flag = FALSE;
+	}
 
-			// Enable/disable the MPPTs based on the percentage that was calculated.
-			if(battPercentage <= BATT_HIGH) {
-				ToggleMPPT(MPPT_ZERO, ON);
-			} else {
-				ToggleMPPT(MPPT_ZERO, OFF);
-			}
+	if(data_dump_flag == TRUE) {
+		/** @todo Figure out if Dr. Bazuin wants this functionality. */
+		battPercentage = ((BATT_MAX_I - coulombCnt) / BATT_MAX_I) * 100; // Convert to a percentage.
 
-			if(battPercentage <= BATT_MEDI) {
-				ToggleMPPT(MPPT_ONE, ON);
-			} else {
-				ToggleMPPT(MPPT_ONE, OFF);
-			}
+		// Enable/disable the MPPTs based on the percentage that was calculated.
+		if(battPercentage <= BATT_HIGH) {
+			ToggleMPPT(MPPT_ZERO, ON);
+		} else {
+			ToggleMPPT(MPPT_ZERO, OFF);
+		}
 
-			if(battPercentage <= BATT_LOW) {
-				ToggleMPPT(MPPT_TWO, ON);
-			} else {
-				ToggleMPPT(MPPT_TWO, OFF);
-			}
-			ReportCoulombCount();
+		if(battPercentage <= BATT_MEDI) {
+			ToggleMPPT(MPPT_ONE, ON);
+		} else {
+			ToggleMPPT(MPPT_ONE, OFF);
+		}
 
-			coulomb_count_flag = FALSE;
+		if(battPercentage <= BATT_LOW) {
+			ToggleMPPT(MPPT_TWO, ON);
+		} else {
+			ToggleMPPT(MPPT_TWO, OFF);
+		}
+
+		ReportCoulombCount();
 	}
 }
 
@@ -345,7 +353,7 @@ static void IdleController(void) {
 	// is not needed.
 	if((battV[MPPT_ZERO] != battV[MPPT_ONE]) || (battV[MPPT_ONE] != battV[MPPT_TWO])) {
 		// Dump data via RS-232 and CAN every second.
-		if(idle_data_dump_flag == TRUE) {
+		if(data_dump_flag == TRUE) {
 			AC2PC_puts("BLOWN FUSE\r\n");
 			sprintf(buffer, "0: %d V, 1: %d V, 2: %d V\r\n", battV[MPPT_ZERO], battV[MPPT_ONE], battV[MPPT_TWO]);
 			AC2PC_puts(buffer);
@@ -358,7 +366,7 @@ static void IdleController(void) {
 			can_transmit_MAIN();
 
 			error_flag = TRUE;
-			idle_data_dump_flag = FALSE;
+			data_dump_flag = FALSE;
 		}
 	}
 
@@ -370,7 +378,7 @@ static void IdleController(void) {
 		if(battV[MPPT_ONE] == battV[MPPT_TWO]) {
 			if((battV[MPPT_ZERO] >= BATT_MAX_LOWER_V) && (battV[MPPT_ZERO] <= BATT_MAX_UPPER_V)) {
 				// Dump data via RS-232 and CAN every second.
-				if(idle_data_dump_flag == TRUE) {
+				if(data_dump_flag == TRUE) {
 					AC2PC_puts("ARRAY UNCONNECTED\r\n");
 					sprintf(buffer, "0: %d V, 1: %d V, 2: %d V\r\n", battV[MPPT_ZERO], battV[MPPT_ONE], battV[MPPT_TWO]);
 					AC2PC_puts(buffer);
@@ -383,7 +391,7 @@ static void IdleController(void) {
 					can_transmit_MAIN();
 
 					error_flag = TRUE;
-					idle_data_dump_flag = FALSE;
+					data_dump_flag = FALSE;
 				}
 			}
 		}
@@ -899,10 +907,10 @@ __interrupt void P2_ISR(void)
 #pragma vector = TIMER0_A0_VECTOR
  __interrupt void TIMERA_ISR(void)
 {
+	 coulomb_count_flag = TRUE;
 	 if(++timA_cnt == TIMA_ONE_SEC + 1) { // If timA_cnt is equal to 513, roll over.
 		 timA_cnt = 1;
-		 coulomb_count_flag = TRUE;
-		 idle_data_dump_flag = TRUE;
+		 data_dump_flag = TRUE;
 		 if(++timA_total_cnt == ULONG_MAX) { // This should never happen.
 			 timA_total_cnt = 0;
 		 }
