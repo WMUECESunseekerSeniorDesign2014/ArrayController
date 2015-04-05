@@ -178,6 +178,9 @@ static int GetMPPTData(unsigned int mppt) {
  *  * Poll the thermistors and, if needed, send an emergency CAN message.
  */
 static void GeneralOperation(void) {
+
+
+
 	/*Check for CAN packet reception on CAN_MPPT (Polling)*/
 	if((P1IN & CAN_INTn0) == 0x00)
 	{
@@ -188,7 +191,7 @@ static void GeneralOperation(void) {
 	   // - messages received at 5 times per second 16/(2*5) = 1.6 sec smoothing
 	   if(can_MPPT.status == CAN_OK)
 	   {
-			P4OUT ^= LED2;
+			// Do something with the CAN message.
 	   }
 	   if(can_MPPT.status == CAN_RTR)
 	   {
@@ -196,7 +199,7 @@ static void GeneralOperation(void) {
 	   }
 	   if(can_MPPT.status == CAN_ERROR)
 	   {
-			P4OUT ^= LED3;
+			ToggleError(TRUE);
 	   }
 	 }
 }
@@ -329,6 +332,9 @@ static void IdleController(void) {
 	if(error_flag == FALSE && dc_504_flag == TRUE) {
 		carState = RUNNING;
 		P4OUT |= (LED4 | LED5);
+		// Reset the counters for the next state.
+		timA_cnt = 0;
+		timA_total_cnt = 0;
 	}
 
 	ToggleError(error_flag);

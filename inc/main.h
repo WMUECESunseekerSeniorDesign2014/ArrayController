@@ -69,6 +69,7 @@ void timerB_init( void );
 // The maximum voltage range that the batteries can be in is between 120V-160V.
 #define BATT_MAX_UPPER_V 160
 #define BATT_MAX_LOWER_V 120
+#define BATT_MAX_I		 9 /** @todo Check if this is the maximum amount of current that the batteries can supply. */
 /**@}*/
 
 /**
