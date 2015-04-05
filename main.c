@@ -10,8 +10,9 @@ static void ChargeOnly(void);
 static void HumanInterruptCheck(void);
 static void ToggleMPPT(unsigned int mppt, FunctionalState state);
 static int GetMPPTData(unsigned int mppt);
-void ToggleError(bool toggle);
-void CoulombCount(void);
+static void ToggleError(bool toggle);
+static void CoulombCount(void);
+static void ReportCoulombCount(void);
 /**@}*/
 
 CarState carState = INIT; // The state that the car is in.
@@ -39,13 +40,18 @@ volatile unsigned char dr_switch_flag = 0x00;
 bool int_enable_flag = FALSE;
 bool dc_504_flag = FALSE;
 
+char mppt_status = 0;
+
 // Every time timA_cnt hits 512, timA_total_cnt needs to be incremented.
 short timA_cnt = 0;
 unsigned long timA_total_cnt = 0;
 
-signed long coulombCnt = 0;
-signed long shuntCurrent = 0;
+unsigned long coulombCnt = 0;
+unsigned long shuntCurrent = 0;
 signed int battPercentage = 0;
+unsigned int battVoltage = 0;
+unsigned long power = 0;
+unsigned long powerAvg = 0;
 
 int i;
 
@@ -143,6 +149,22 @@ static void ToggleMPPT(unsigned int mppt, FunctionalState state) {
 	can_MPPT.data.data_u16[1] = 0x0000;
 
 	can_transmit_MPPT();
+
+	// Keeps track of the status of each MPPT.
+	switch(mppt) {
+		case MPPT_ZERO:
+			mppt_status ^= 0x01;
+			break;
+		case MPPT_ONE:
+			mppt_status ^= 0x02;
+			break;
+		case MPPT_TWO:
+			mppt_status ^= 0x04;
+			break;
+		default:
+			// Someone messed up if this happens.
+			break;
+	}
 }
 
 /**
@@ -206,6 +228,8 @@ static void GeneralOperation(void) {
 		} else {
 			ToggleMPPT(MPPT_TWO, OFF);
 		}
+
+		ReportCoulombCount();
 	}
 
 
@@ -363,6 +387,7 @@ static void IdleController(void) {
 		// Reset the counters for the next state.
 		timA_cnt = 0;
 		timA_total_cnt = 0;
+		battVoltage = battV[0]; // All battery voltages should be about the same.
 	}
 
 	ToggleError(error_flag);
@@ -427,13 +452,47 @@ static void InitController(void) {
 	P4OUT |= LED2 | LED3 | LED4 | LED5;
 }
 
+/**
+ * The function which performs coulomb counting. This function:
+ *  1. Reads the shunt voltage.
+ *  2. Reads the bias voltage.
+ *  3. Subtracts the bias from the shunt voltage.
+ *  4. Converts the value from (3) into a voltage.
+ *  5. Converts the value (4) into a current and stores it in a global.
+ *  5. Computes the time average current and stores it in another global.
+ */
 void CoulombCount(void) {
-	signed long shuntVal = 0;
+	unsigned long shuntVal = 0;
 
 	// Convert the value read from the shunt back into a voltage.
 	shuntVal = ((adc_in((char)SHUNT) - adc_in((char)SHUNT_BIAS)) * ADC_REF) / ADC_RESO;
 	shuntCurrent /= SHUNT_OHM; // Get the current.
 	coulombCnt += (shuntCurrent - coulombCnt) >> C_CNT_SHIFT;
+}
+
+/**
+ * Report the results of the coulomb count to the CAN bus.
+ */
+void ReportCoulombCount(void) {
+	power = battVoltage * shuntCurrent;
+	powerAvg = battVoltage * coulombCnt;
+
+	// Transmit MPPT status.
+	can_MAIN.address = AC_CAN_MAIN_BASE + AC_MPPT_STATUS;
+	can_MAIN.data.data_u8[0] = mppt_status;
+	can_transmit_MAIN();
+
+	// Transmit currents.
+	can_MAIN.address = AC_CAN_MAIN_BASE + AC_CURRENT;
+	can_MAIN.data.data_u32[0] = shuntCurrent;
+	can_MAIN.data.data_u32[1] = coulombCnt;
+	can_transmit_MAIN();
+
+	// Transmit powers.
+	can_MAIN.address = AC_CAN_MAIN_BASE + AC_POWER;
+	can_MAIN.data.data_u32[0] = power;
+	can_MAIN.data.data_u32[1] = powerAvg;
+	can_transmit_MAIN();
 }
 
 /**
