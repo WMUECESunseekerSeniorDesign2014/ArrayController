@@ -82,9 +82,10 @@ void timerB_init( void );
 #define SHUNT_OHM		 0.005 // Shunt Resistance.
 
 // Percentage thresholds for turning on the MPPTs.
-#define BATT_HIGH 75 // Turn on one MPPT.
-#define BATT_MEDI 50 // Turn on two MPPTs.
-#define BATT_LOW  25 // Turn on three MPPTs.
+#define BATT_HIGH_UPPER 99
+#define BATT_HIGH_LOWER 75
+#define BATT_MEDI 		50 // Turn on two MPPTs.
+#define BATT_LOW  		25 // Turn on three MPPTs.
 
 /**
  * @defgroup delayDefines Delay Timings

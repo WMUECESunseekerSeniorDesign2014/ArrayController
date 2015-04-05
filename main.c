@@ -287,9 +287,9 @@ static void ChargeOnly(void) {
 		battPercentage = ((BATT_MAX_I - coulombCnt) / BATT_MAX_I) * 100; // Convert to a percentage.
 
 		// Enable/disable the MPPTs based on the percentage that was calculated.
-		if(battPercentage <= BATT_HIGH) {
+		if(battPercentage <= BATT_HIGH_LOWER) {
 			ToggleMPPT(MPPT_ZERO, ON);
-		} else {
+		} else if(battPercentage >= BATT_HIGH_UPPER) {
 			ToggleMPPT(MPPT_ZERO, OFF);
 		}
 
