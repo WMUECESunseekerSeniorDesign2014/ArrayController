@@ -17,7 +17,7 @@ static int ConvertADCVal(ADCState state);
 /**@}*/
 
 CarState carState = INIT; // The state that the car is in.
-ADCState adcState = AIN0; // The state determining what the ADC should be converting at this moment.
+ADCState adcState = AIN3; // The state determining what the ADC should be converting at this moment.
 
 /**
  * @defgroup privRs232Vars Private Main RS-232 Variables
@@ -49,7 +49,7 @@ char mppt_status = 0;
 short timA_cnt = 0;
 unsigned long timA_total_cnt = 0;
 
-signed long tempOne, tempTwo, temp3, refTemp, internal12V;
+signed long tempOne, tempTwo, tempThree, refTemp, adcRef, internal12V;
 unsigned long coulombCnt = 0;
 unsigned long shuntCurrent = 0;
 unsigned int battVoltage = 0;
@@ -200,8 +200,6 @@ static int GetMPPTData(unsigned int mppt) {
  *  * Poll the thermistors and, if needed, send an emergency CAN message.
  */
 static void GeneralOperation(void) {
-
-
 	// TIMA has gone off.
 	if(coulomb_count_flag == TRUE) {
 		CoulombCount();
@@ -269,24 +267,29 @@ static void GeneralOperation(void) {
 	   }
 	 }
 
+	/** @todo Figure out what Bazuin wants me to do with the temperatures. */
 	switch(adcState) {
 		case AIN0:
-
+			tempOne = ConvertADCVal(adcState);
+			adcState = AIN1;
 			break;
 		case AIN1:
-
+			tempTwo = ConvertADCVal(adcState);
+			adcState = AIN2;
 			break;
 		case AIN2:
-
+			tempThree = ConvertADCVal(adcState);
+			adcState = AIN3;
 			break;
 		case AIN3:
-
+			refTemp = ConvertADCVal(adcState);
+			adcState = AIN0;
 			break;
 		case REF:
-
+			adcRef = ConvertADCVal(adcState);
 			break;
-		case INT12V:
-
+		case INT12V: /** @todo Decide if this should go into the INIT state or not. */
+			internal12V = ConvertADCVal(adcState);
 			break;
 	}
 }
@@ -569,8 +572,13 @@ void ReportCoulombCount(void) {
 	can_transmit_MAIN();
 }
 
+/**
+ * Converts a ratiometric value from the ADC into a voltage.
+ */
 int ConvertADCVal(ADCState state) {
+	signed long adcVal = adc_in((char)state);
 
+	return (int)((adcVal * ADC_REF) / ADC_RESO);
 }
 
 /**
