@@ -16,7 +16,7 @@ static char RS232NotActive[] = "Exiting prompt.\n";
 #define PROMPT_SHUNT_DUMP 		2
 #define PROMPT_MPPT_DUMP 		3
 #define PROMPT_THERM_DUMP 		4
-#define PROMPT_MPPT_SWITCH_DUMP 5
+#define PROMPT_MPPT_STATUS_DUMP 5
 /** @} */
 /*
  * Function Definitions

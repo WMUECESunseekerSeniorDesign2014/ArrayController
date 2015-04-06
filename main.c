@@ -768,30 +768,30 @@ void AC2PC_Interpret(void) {
 
 	switch((*getPC_ptr) - '0') { // Hackish way to tell MCU that *getPC_ptr is a number.
 		case PROMPT_EXIT:
-			/** @todo Implement exiting the prompt. */
 			Prompt_Active = FALSE;
-			putPC_ptr = &RS232NotActive[0];
+			sprintf(tx_PC_buffer, "Exiting prompt.\n");
 			put_status_PC = TRUE;
 			break;
 		case PROMPT_BATT_DUMP:
 			/** @todo Dump battery stats. */
 			break;
 		case PROMPT_SHUNT_DUMP:
-			/** @todo Dump shunt stats. */
+			sprintf(tx_PC_buffer, "I: %d, AvgI: %d, P: %d, AvgP: %d", shuntCurrent, coulombCnt, power, powerAvg);
 			break;
 		case PROMPT_MPPT_DUMP:
 			/** @todo Dump MPPT stats. */
 			break;
 		case PROMPT_THERM_DUMP:
-			/** @todo Dump thermistor temperatures. */
+			sprintf(tx_PC_buffer, "T1: %d, T2: %d, T3: %d, R: %d", tempOne, tempTwo, tempThree, refTemp);
 			break;
-		case PROMPT_MPPT_SWITCH_DUMP:
-			/** @todo Dump status of MPPT switches. */
+		case PROMPT_MPPT_STATUS_DUMP:
+			sprintf(tx_PC_buffer, "MPPT: %X", mppt_status);
 			break;
 		default:
-			/** @todo Display an error to the user. Maybe error light? */
+			// Do nothing.
 			break;
 	}
+	putPC_ptr = &tx_PC_buffer;
 	UCA0TXBUF = *putPC_ptr++;
 	UCA0IE |= UCTXIE;
 }
