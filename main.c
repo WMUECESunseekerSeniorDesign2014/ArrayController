@@ -203,6 +203,7 @@ static void GeneralOperation(void) {
 	// TIMA has gone off.
 	if(coulomb_count_flag == TRUE) {
 		CoulombCount();
+		coulomb_count_flag = FALSE;
 	}
 
 	// One second has passed.
@@ -283,13 +284,15 @@ static void GeneralOperation(void) {
 			break;
 		case AIN3:
 			refTemp = ConvertADCVal(adcState);
-			adcState = AIN0;
+			adcState = REF;
 			break;
 		case REF:
 			adcRef = ConvertADCVal(adcState);
+			adcState = INT12V;
 			break;
 		case INT12V: /** @todo Decide if this should go into the INIT state or not. */
 			internal12V = ConvertADCVal(adcState);
+			adcState = AIN0;
 			break;
 	}
 }
