@@ -290,7 +290,7 @@ static void GeneralOperation(void) {
 			adcRef = ConvertADCVal(adcState);
 			adcState = INT12V;
 			break;
-		case INT12V: /** @todo Decide if this should go into the INIT state or not. */
+		case INT12V:
 			internal12V = ConvertADCVal(adcState);
 			adcState = AIN0;
 			break;
@@ -782,10 +782,13 @@ void AC2PC_Interpret(void) {
 			/** @todo Dump MPPT stats. */
 			break;
 		case PROMPT_THERM_DUMP:
-			sprintf(tx_PC_buffer, "T1: %d, T2: %d, T3: %d, R: %d\r\n", tempOne, tempTwo, tempThree, refTemp);
+			sprintf(tx_PC_buffer, "T1: %lX, T2: %lX, T3: %lX, R: %lX\r\n", tempOne, tempTwo, tempThree, refTemp);
 			break;
 		case PROMPT_MPPT_STATUS_DUMP:
 			sprintf(tx_PC_buffer, "MPPT: %X\r\n", mppt_status);
+			break;
+		case PROMPT_SELF_CHECK:
+			sprintf(tx_PC_buffer, "12V: %lX, REF: %lX", internal12V, adcRef);
 			break;
 		default:
 			// Do nothing.
