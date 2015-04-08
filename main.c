@@ -263,7 +263,7 @@ static void IdleController(void) {
 		if(battV[MPPT_ONE] == battV[MPPT_TWO]) {
 			if((battV[MPPT_ZERO] >= BATT_MAX_LOWER_V) && (battV[MPPT_ZERO] <= BATT_MAX_UPPER_V)) {
 				// Dump data via RS-232 and CAN every second.
-				if(data_dump_flag == TRUE) {
+				if(coulomb_data_dump_flag == TRUE) {
 					AC2PC_puts("ARRAY UNCONNECTED\r\n");
 					sprintf(buffer, "0: %d V, 1: %d V, 2: %d V\r\n", battV[MPPT_ZERO], battV[MPPT_ONE], battV[MPPT_TWO]);
 					AC2PC_puts(buffer);
@@ -332,6 +332,8 @@ static void IdleController(void) {
  *  * Poll the thermistors and, if needed, send an emergency CAN message.
  */
 static void GeneralOperation(void) {
+	signed int battPercentage = 0;
+
 	// TIMA has gone off.
 	if(coulomb_count_flag == TRUE) {
 		CoulombCount();
@@ -400,7 +402,7 @@ static void GeneralOperation(void) {
 			case MPPT0:
 				if(GetMPPTData(MPPT_ZERO) == 1) {
 					arrayV[MPPT_ZERO] = can_MPPT.data.data_u16[0];
-					arrayI[MPPT_ZERO] = can_MPPT.data.data_16[1];
+					arrayI[MPPT_ZERO] = can_MPPT.data.data_u16[1];
 					batteryV[MPPT_ZERO] = can_MPPT.data.data_u16[2];
 					arrayT[MPPT_ZERO] = can_MPPT.data.data_u16[3];
 
@@ -417,7 +419,7 @@ static void GeneralOperation(void) {
 			case MPPT1:
 				if(GetMPPTData(MPPT_ONE) == 1) {
 					arrayV[MPPT_ONE] = can_MPPT.data.data_u16[0];
-					arrayI[MPPT_ONE] = can_MPPT.data.data_16[1];
+					arrayI[MPPT_ONE] = can_MPPT.data.data_u16[1];
 					batteryV[MPPT_ONE] = can_MPPT.data.data_u16[2];
 					arrayT[MPPT_ONE] = can_MPPT.data.data_u16[3];
 
@@ -434,7 +436,7 @@ static void GeneralOperation(void) {
 			case MPPT2:
 				if(GetMPPTData(MPPT_TWO) == 1) {
 					arrayV[MPPT_TWO] = can_MPPT.data.data_u16[0];
-					arrayI[MPPT_TWO] = can_MPPT.data.data_16[1];
+					arrayI[MPPT_TWO] = can_MPPT.data.data_u16[1];
 					batteryV[MPPT_TWO] = can_MPPT.data.data_u16[2];
 					arrayT[MPPT_TWO] = can_MPPT.data.data_u16[3];
 
@@ -516,7 +518,7 @@ static void ChargeOnly(void) {
 		coulomb_count_flag = FALSE;
 	}
 
-	if(data_dump_flag == TRUE) {
+	if(coulomb_data_dump_flag == TRUE) {
 		// Calculate the percentage of deliverable power left in the batteries. powerAvg is divided by 3600
 		// to convert it from watt-seconds to watt-hours.
 		battPercentage = ((BATT_MAX_WATTH - (powerAvg / 3600)) / BATT_MAX_WATTH) * 100; // Convert to a percentage.
@@ -865,13 +867,14 @@ void AC2PC_Interpret(void) {
 			put_status_PC = TRUE;
 			break;
 		case PROMPT_BATT_DUMP:
-			/** @todo Dump battery stats. */
+			sprintf(tx_PC_buffer, "V1: %d, V2: %d, V3: %d", batteryV[MPPT_ZERO], batteryV[MPPT_ONE], batteryV[MPPT_TWO]);
 			break;
 		case PROMPT_SHUNT_DUMP:
 			sprintf(tx_PC_buffer, "I: %d, AvgI: %d, P: %d, AvgP: %d\r\n", shuntCurrent, coulombCnt, power, powerAvg);
 			break;
 		case PROMPT_MPPT_DUMP:
-			/** @todo Dump MPPT stats. */
+			sprintf(tx_PC_buffer, "V1: %d, V2: %d, V3: %d, I1: %d, I2: %d, I3: %d", arrayV[MPPT_ZERO], arrayV[MPPT_ONE], arrayV[MPPT_TWO],
+					arrayI[MPPT_ZERO], arrayI[MPPT_ONE], arrayI[MPPT_TWO]);
 			break;
 		case PROMPT_THERM_DUMP:
 			sprintf(tx_PC_buffer, "T1: %lX, T2: %lX, T3: %lX, R: %lX\r\n", tempOne, tempTwo, tempThree, refTemp);
@@ -886,7 +889,7 @@ void AC2PC_Interpret(void) {
 			// Do nothing.
 			break;
 	}
-	putPC_ptr = &tx_PC_buffer;
+	putPC_ptr = &tx_PC_buffer[0];
 	UCA0TXBUF = *putPC_ptr++;
 	UCA0IE |= UCTXIE;
 }
