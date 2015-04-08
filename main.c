@@ -211,6 +211,7 @@ static void IdleController(void) {
 	bool error_flag = FALSE;
 
 	// Loop and get data from MPPT.
+	/** @todo Indicate the user that we're stuck here. */
 	for(i = 0; i <= MPPT_TWO; i++) {
 		// If the previous call to GetMPPTData() resulted in an error, roll back i.
 		if(status == 0) {
@@ -281,6 +282,7 @@ static void IdleController(void) {
 	}
 
 	// Poll CAN interrupt to see if we have received the 504 message.
+	/** @todo Check CAN_INTn1 instead of RX. */
 	if((P4IN & (CAN_RX1n2 | CAN_RX2n2)) == 0x00) {
 		can_receive_MAIN();
 
@@ -394,6 +396,7 @@ static void GeneralOperation(void) {
 	}
 
 	// Dump MPPT data out on the main CAN bus.
+	/** Disassociate reading from MPPTs and reporting to main CAN. */
 	if(mppt_data_dump_flag == TRUE) {
 		switch(canMpptState) {
 			case MPPT0:
@@ -454,6 +457,7 @@ static void GeneralOperation(void) {
 
 
 	// Staggered conversions of ADC values.
+	/** @todo Add a flag to make sure that the CAN bus isn't sending thermistor values before we have the values read. */
 	switch(adcState) {
 		case AIN0:
 			tempOne = ConvertADCVal(adcState);
@@ -635,12 +639,19 @@ static int GetMPPTData(unsigned int mppt) {
  *  4. Converts the value from (3) into a voltage.
  *  5. Converts the value (4) into a current and stores it in a global.
  *  5. Computes the time average current and stores it in another global.
+ *
+ *  @todo Create a intShunt to hold the adc_in(shunt) - adc_in(shunt_bias).
+ *  @todo Keep a raw running sum of intShunt.
+ *  @todo Perform filtering on intShunt (different than previous todo).
+ *  @todo Do the conversions from voltage to current when the CAN message is sent (using floats).
  */
 void CoulombCount(void) {
-	unsigned long shuntVal = 0;
+	float shuntVal = 0;
 
 	// Convert the value read from the shunt back into a voltage.
 	shuntVal = ((adc_in((char)SHUNT) - adc_in((char)SHUNT_BIAS)) * ADC_REF) / ADC_RESO;
+
+	// These are ints!
 	shuntCurrent = shuntVal / SHUNT_OHM; // Get the current.
 	coulombCnt += (shuntCurrent - coulombCnt) >> C_CNT_SHIFT;
 }
