@@ -44,7 +44,8 @@ bool coulomb_count_flag = FALSE;
 bool data_dump_flag = FALSE;
 bool error_blink_flag = FALSE;
 
-char mppt_status = 0;
+char mppt_status = 0; // Bits 0-2 indicate if the MPPT is enabled or disabled.
+char mppt_control = 0x0F; // Bits 0-2 indicate if we are intelligently controlling the MPPTs.
 
 // Every time timA_cnt hits 512, timA_total_cnt needs to be incremented.
 short timA_cnt = 0;
@@ -131,37 +132,41 @@ static void ToggleMPPT(unsigned int mppt, FunctionalState state) {
 	can_MPPT.data.data_u16[2] = 0x0000;
 	can_MPPT.data.data_u16[1] = 0x0000;
 
-	can_transmit_MPPT();
+	// Only transmit if needed to prevent hanging up the microcontroller with sending an
+	// unnecessary CAN message. This was broken into multiple IF statements for readability.
+	if(state == ON) { // The MPPT is OFF and we want to turn it on.
+		if((mppt_status & 0x01) == 0) {
+			can_transmit_MPPT();
+		} else if((mppt_status & 0x02) == 0) {
+			can_transmit_MPPT();
+		} else if((mppt_status & 0x04) == 0) {
+			can_transmit_MPPT();
+		}
+	} else { // The MPPT is ON and we want to turn it off.
+		if((mppt_status & 0x01) > 0) {
+			can_transmit_MPPT();
+		} else if((mppt_status & 0x02) > 0) {
+			can_transmit_MPPT();
+		} else if((mppt_status & 0x04) > 0) {
+			can_transmit_MPPT();
+		}
+	}
 
-	// Keeps track of the status of each MPPT.
-	if(state == ON) {
-		switch(mppt) {
-			case MPPT_ZERO:
-				mppt_status |= 0x01;
-				break;
-			case MPPT_ONE:
-				mppt_status |= 0x02;
-				break;
-			case MPPT_TWO:
-				mppt_status |= 0x04;
-				break;
-			default:
-				break;
-		}
-	} else {
-		switch(mppt) {
-			case MPPT_ZERO:
-				mppt_status &= ~(0x01);
-				break;
-			case MPPT_ONE:
-				mppt_status &= ~(0x02);
-				break;
-			case MPPT_TWO:
-				mppt_status &= ~(0x04);
-				break;
-			default:
-				break;
-		}
+	// Keep track of the status of each MPPT.
+	switch(mppt) {
+		case MPPT_ZERO:
+			mppt_status = (state == ON) ? mppt_status | 0x01 : mppt_status & ~(0x01);
+			break;
+		case MPPT_ONE:
+			can_transmit_MPPT();
+			mppt_status = (state == ON) ? mppt_status | 0x02 : mppt_status & ~(0x02);
+			break;
+		case MPPT_TWO:
+			can_transmit_MPPT();
+			mppt_status = (state == ON) ? mppt_status | 0x04 : mppt_status & ~(0x04);
+			break;
+		default:
+			break;
 	}
 }
 
@@ -216,35 +221,51 @@ static void GeneralOperation(void) {
 	// Enable/disable MPPTs based on driver switch status.
 	// The first MPPT.
 	if((dr_switch_flag & 0x08) > 0) { // Switch is on.
-		if((mppt_status & 0x01) == 0) { // MPPT_ZERO is off.
-			ToggleMPPT(MPPT_ZERO, ON);
-		}
+		mppt_control |= ~(0xFE);
 	} else {
-		if((mppt_status & 0x01) > 0) { // MPPT_ZERO is on.
-			ToggleMPPT(MPPT_ZERO, OFF);
-		}
+		// The driver has ultimate control over turning off the MPPT.
+		ToggleMPPT(MPPT_ZERO, OFF);
+		mppt_control &= 0xFE;
 	}
 
 	// The second MPPT.
 	if((dr_switch_flag & 0x01) > 0) { // Switch is on.
-		if((mppt_status & 0x02) == 0) { // MPPT_ZERO is off.
-			ToggleMPPT(MPPT_ONE, ON);
-		}
+		mppt_control &= ~(0xFD);
 	} else {
-		if((mppt_status & 0x02) > 0) { // MPPT_ZERO is on.
-			ToggleMPPT(MPPT_ONE, OFF);
-		}
+		ToggleMPPT(MPPT_ONE, OFF);
+		mppt_control &= 0xFD;
 	}
 
 	// The third MPPT.
 	if((dr_switch_flag & 0x04) > 0) { // Switch is on.
-		if((mppt_status & 0x04) == 0) { // MPPT_ZERO is off.
-			ToggleMPPT(MPPT_TWO, ON);
-		}
+		mppt_control &= ~(0xFB);
 	} else {
-		if((mppt_status & 0x04) > 0) { // MPPT_ZERO is on.
-			ToggleMPPT(MPPT_TWO, OFF);
-		}
+		ToggleMPPT(MPPT_TWO, OFF);
+		mppt_control &= 0xFB;
+	}
+
+	// Calculate the percentage of deliverable power left in the batteries. powerAvg is divided by 3600
+	// to convert it from watt-seconds to watt-hours.
+	battPercentage = ((BATT_MAX_WATTH - (powerAvg / 3600)) / BATT_MAX_WATTH) * 100; // Convert to a percentage.
+
+	// Enable/disable the MPPTs based on the percentage that was calculated AND if the driver is allowing
+	// us to control the MPPTs.
+	if(battPercentage <= BATT_HIGH_LOWER && (mppt_control & 0x01) > 0) {
+		ToggleMPPT(MPPT_ZERO, ON);
+	} else if(battPercentage >= BATT_HIGH_UPPER) {
+		ToggleMPPT(MPPT_ZERO, OFF);
+	}
+
+	if(battPercentage <= BATT_MEDI && (mppt_control & 0x02) > 0) {
+		ToggleMPPT(MPPT_ONE, ON);
+	} else {
+		ToggleMPPT(MPPT_ONE, OFF);
+	}
+
+	if(battPercentage <= BATT_LOW && (mppt_control & 0x04) > 0) {
+		ToggleMPPT(MPPT_TWO, ON);
+	} else {
+		ToggleMPPT(MPPT_TWO, OFF);
 	}
 
 	/*Check for CAN packet reception on CAN_MPPT (Polling)*/
@@ -269,7 +290,6 @@ static void GeneralOperation(void) {
 	   }
 	 }
 
-	/** @todo Figure out what Bazuin wants me to do with the temperatures. */
 	switch(adcState) {
 		case AIN0:
 			tempOne = ConvertADCVal(adcState);
@@ -304,6 +324,9 @@ static void GeneralOperation(void) {
  *  * Calculate the state-of-charge (coulomb count).
  *  * Disable the MPPTs as the batteries fill.
  * @note Max voltage of the battery array is 160V.
+ * @note This is unfinished and untested; Dr. Bazuin has requested we leave this state alone as
+ * 		 Sunseeker currently doesn't have a way to indicate when the Array Controller should
+ * 		 switch to CHARGING.
  */
 static void ChargeOnly(void) {
 	signed int battPercentage = 0;
