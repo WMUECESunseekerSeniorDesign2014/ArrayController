@@ -44,13 +44,12 @@ extern void 			can_init_MPPT( void );
 extern int	 			can_transmit_MPPT( void );
 extern void 			can_receive_MPPT( void );
 extern void 			can_flag_check_MPPT( void );
-extern void 			can_sendRTR( int );
+extern int 				can_sendRTR( void );
 
 extern void 			can_init_MAIN( void );
 extern int	 			can_transmit_MAIN( void );
 extern void 			can_receive_MAIN( void );
 extern void 			can_flag_check_MAIN( void );
-
 
 // Public variables
 
@@ -129,7 +128,6 @@ void 					can_mod_2( unsigned char address, unsigned char mask, unsigned char da
 #define	AC_CAN_ADDRESS1		0x00		// Address to specify MPPT 1
 #define	AC_CAN_ADDRESS2		0x01		// Address to specify MPPT 2
 #define	AC_CAN_ADDRESS3		0x02		// Address to specify MPPT 3
-
 
 /** @todo Talk to Austin about how the main CAN defines should be. */
 #define AC_CAN_MAIN_BASE	0x620
