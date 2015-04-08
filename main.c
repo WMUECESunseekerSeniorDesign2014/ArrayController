@@ -42,6 +42,7 @@ bool int_enable_flag = FALSE;
 bool dc_504_flag = FALSE;
 bool coulomb_count_flag = FALSE;
 bool data_dump_flag = FALSE;
+bool error_blink_flag = FALSE;
 
 char mppt_status = 0;
 
@@ -626,11 +627,7 @@ extern void Delay(unsigned long delayConstant) {
  * Toggle the error LED on or off.
  */
 void ToggleError(bool toggle) {
-	if(toggle == TRUE) {
-		P1OUT &= ~LED1;
-	} else {
-		P1OUT |= LED1;
-	}
+	error_blink_flag = toggle;
 }
 
 /*
@@ -954,6 +951,13 @@ __interrupt void P2_ISR(void)
 	 if(++timA_cnt == TIMA_ONE_SEC + 1) { // If timA_cnt is equal to 513, roll over.
 		 timA_cnt = 1;
 		 data_dump_flag = TRUE;
+
+		 if(error_blink_flag == TRUE) {
+			 P1OUT ^= ~LED1; // Blink the LED.
+		 } else {
+			 P1OUT |= LED1; // Disable the LED.
+		 }
+
 		 if(++timA_total_cnt == ULONG_MAX) { // This should never happen.
 			 timA_total_cnt = 0;
 		 }
