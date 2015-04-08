@@ -40,6 +40,12 @@ typedef enum { INIT, IDLE, RUNNING, CHARGING } CarState;
 typedef enum { AIN0, AIN1, AIN2, AIN3, SHUNT, SHUNT_BIAS, REF, INT12V } ADCState;
 
 /**
+ * @enum CANMPPTState
+ * Decides which MPPT to fetch info from.
+ */
+typedef enum { MPPT0, MPPT1, MPPT2 } CANMPPTState;
+
+/**
  * Function Prototypes
  */
 extern void Delay( unsigned long delayConstant );

@@ -18,6 +18,7 @@ static int ConvertADCVal(ADCState state);
 
 CarState carState = INIT; // The state that the car is in.
 ADCState adcState = AIN3; // The state determining what the ADC should be converting at this moment.
+CANMPPTState canMpptState = MPPT0; // Which MPPT should be spoken to.
 
 /**
  * @defgroup privRs232Vars Private Main RS-232 Variables
@@ -34,6 +35,10 @@ bool AC2PC_RX_flag = FALSE;
 /*Global Variables*/
 volatile unsigned char adc_stat[8] = { 0 };
 volatile signed long adc_voltage[8] = { 0 };
+volatile unsigned int batteryV[3] = { 0 };
+volatile unsigned int arrayV[3] = { 0 };
+volatile unsigned int arrayI[3] = { 0 };
+volatile unsigned int arrayT[3] = { 0 };
 
 volatile unsigned char int_op_flag = 0x00;
 volatile unsigned char adc_rdy_flag = 0x00;
@@ -41,8 +46,10 @@ volatile unsigned char dr_switch_flag = 0x00;
 bool int_enable_flag = FALSE;
 bool dc_504_flag = FALSE;
 bool coulomb_count_flag = FALSE;
-bool data_dump_flag = FALSE;
+bool coulomb_data_dump_flag = FALSE;
+bool mppt_data_dump_flag = FALSE;
 bool error_blink_flag = FALSE;
+bool mppt_rtr_flag = FALSE;
 
 char mppt_status = 0; // Bits 0-2 indicate if the MPPT is enabled or disabled.
 char mppt_control = 0x0F; // Bits 0-2 indicate if we are intelligently controlling the MPPTs.
@@ -174,23 +181,29 @@ static void ToggleMPPT(unsigned int mppt, FunctionalState state) {
  * Get a data dump from the MPPTs.
  */
 static int GetMPPTData(unsigned int mppt) {
-	can_MPPT.address = AC_CAN_BASE1 + mppt;
-	can_sendRTR(); //Send RTR request
+	// Prevent the AC from spamming the MPPTs.
+	if(mppt_rtr_flag == FALSE) {
+		can_MPPT.address = AC_CAN_BASE1 + mppt;
+		can_sendRTR(); //Send RTR request
+		mppt_rtr_flag = TRUE;
+	}
 
 	// Wait until the response is sent from the MPPT, and then read it.
 	if((P1IN & CAN_INTn0) == 0x00) {
 		can_receive_MPPT();
-	}
-
-	switch(can_MPPT.status) {
-		case CAN_OK:
-		case CAN_RTR:
-			ToggleError(FALSE);
-			return 1;
-		case CAN_ERROR:
-			ToggleError(TRUE);
-		default:
-			return 0;
+		mppt_rtr_flag = FALSE;
+		switch(can_MPPT.status) {
+			case CAN_OK:
+			case CAN_RTR:
+				ToggleError(FALSE);
+				return 1;
+			case CAN_ERROR:
+				ToggleError(TRUE);
+			default:
+				return 0;
+		}
+	} else {
+		return 0;
 	}
 }
 
@@ -210,9 +223,9 @@ static void GeneralOperation(void) {
 	}
 
 	// One second has passed.
-	if(data_dump_flag == TRUE) {
+	if(coulomb_data_dump_flag == TRUE) {
 		ReportCoulombCount();
-		data_dump_flag = FALSE;
+		coulomb_data_dump_flag = FALSE;
 	}
 
 	// Enable/disable MPPTs based on driver switch status.
@@ -265,27 +278,64 @@ static void GeneralOperation(void) {
 		ToggleMPPT(MPPT_TWO, OFF);
 	}
 
-	/*Check for CAN packet reception on CAN_MPPT (Polling)*/
-	if((P1IN & CAN_INTn0) == 0x00)
-	{
-	   //IRQ flag is set, so run the receive routine to either get the message, or the error
-	   can_receive_MPPT();
-	   // Check the status
-	   // Modification: case based updating of actual current and velocity added
-	   // - messages received at 5 times per second 16/(2*5) = 1.6 sec smoothing
-	   if(can_MPPT.status == CAN_OK)
-	   {
-			/** @todo Figure out what CAN messages we need to care about. */
-	   }
-	   if(can_MPPT.status == CAN_RTR)
-	   {
-			//do nothing
-	   }
-	   if(can_MPPT.status == CAN_ERROR)
-	   {
-			ToggleError(TRUE);
-	   }
-	 }
+	if(mppt_data_dump_flag == TRUE) {
+		switch(canMpptState) {
+			case MPPT0:
+				if(GetMPPTData(MPPT_ZERO) == 1) {
+					arrayV[MPPT_ZERO] = can_MPPT.data.data_u16[0];
+					arrayI[MPPT_ZERO] = can_MPPT.data.data_16[1];
+					batteryV[MPPT_ZERO] = can_MPPT.data.data_u16[2];
+					arrayT[MPPT_ZERO] = can_MPPT.data.data_u16[3];
+
+					can_MAIN.address = AC_CAN_MAIN_BASE + AC_MPPT_ZERO;
+					can_MAIN.data.data_u16[0] = arrayV[MPPT_ZERO];
+					can_MAIN.data.data_u16[1] = arrayI[MPPT_ZERO];
+					can_MAIN.data.data_u16[2] = batteryV[MPPT_ZERO];
+					can_MAIN.data.data_u16[3] = arrayT[MPPT_ZERO];
+					can_transmit_MAIN();
+
+					canMpptState = MPPT1;
+				}
+				break;
+			case MPPT1:
+				if(GetMPPTData(MPPT_ONE) == 1) {
+					arrayV[MPPT_ONE] = can_MPPT.data.data_u16[0];
+					arrayI[MPPT_ONE] = can_MPPT.data.data_16[1];
+					batteryV[MPPT_ONE] = can_MPPT.data.data_u16[2];
+					arrayT[MPPT_ONE] = can_MPPT.data.data_u16[3];
+
+					can_MAIN.address = AC_CAN_MAIN_BASE + AC_MPPT_ONE;
+					can_MAIN.data.data_u16[0] = arrayV[MPPT_ONE];
+					can_MAIN.data.data_u16[1] = arrayI[MPPT_ONE];
+					can_MAIN.data.data_u16[2] = batteryV[MPPT_ONE];
+					can_MAIN.data.data_u16[3] = arrayT[MPPT_ONE];
+					can_transmit_MAIN();
+
+					canMpptState = MPPT2;
+				}
+				break;
+			case MPPT2:
+				if(GetMPPTData(MPPT_TWO) == 1) {
+					arrayV[MPPT_TWO] = can_MPPT.data.data_u16[0];
+					arrayI[MPPT_TWO] = can_MPPT.data.data_16[1];
+					batteryV[MPPT_TWO] = can_MPPT.data.data_u16[2];
+					arrayT[MPPT_TWO] = can_MPPT.data.data_u16[3];
+
+					can_MAIN.address = AC_CAN_MAIN_BASE + AC_MPPT_TWO;
+					can_MAIN.data.data_u16[0] = arrayV[MPPT_TWO];
+					can_MAIN.data.data_u16[1] = arrayI[MPPT_TWO];
+					can_MAIN.data.data_u16[2] = batteryV[MPPT_TWO];
+					can_MAIN.data.data_u16[3] = arrayT[MPPT_TWO];
+					can_transmit_MAIN();
+
+					canMpptState = MPPT0;
+				}
+				break;
+		}
+
+		mppt_data_dump_flag == FALSE;
+	}
+
 
 	switch(adcState) {
 		case AIN0:
@@ -379,7 +429,7 @@ static void ChargeOnly(void) {
 static void IdleController(void) {
 	int i;
 	int status = 0;
-	unsigned int arrayV[3];
+	unsigned int arrV[3];
 	unsigned int battV[3];
 	char buffer[80];
 	bool error_flag = FALSE;
@@ -391,8 +441,13 @@ static void IdleController(void) {
 			i = (i <= 1) ? 0 : (i - 1);
 		} else { // If the RTR was successful, store the data.
 			// Change the data from mV to V for simple comparisons.
-			arrayV[i] = can_MPPT.data.data_u16[0] / MPPT_AV_SCALE;
+			arrV[i] = can_MPPT.data.data_u16[0] / MPPT_AV_SCALE;
 			battV[i] = can_MPPT.data.data_u16[2] / MPPT_BV_SCALE;
+
+			arrayV[i] = can_MPPT.data.data_u16[0];
+			arrayI[i] = can_MPPT.data.data_u16[1];
+			batteryV[i] = can_MPPT.data.data_u16[2];
+			arrayT[i] = can_MPPT.data.data_u16[3];
 		}
 
 		status = GetMPPTData(i);
@@ -405,20 +460,20 @@ static void IdleController(void) {
 	// is not needed.
 	if((battV[MPPT_ZERO] != battV[MPPT_ONE]) || (battV[MPPT_ONE] != battV[MPPT_TWO])) {
 		// Dump data via RS-232 and CAN every second.
-		if(data_dump_flag == TRUE) {
+		if(coulomb_data_dump_flag == TRUE) {
 			AC2PC_puts("BLOWN FUSE\r\n");
 			sprintf(buffer, "0: %d V, 1: %d V, 2: %d V\r\n", battV[MPPT_ZERO], battV[MPPT_ONE], battV[MPPT_TWO]);
 			AC2PC_puts(buffer);
 
 			can_MAIN.address = AC_CAN_MAIN_BASE + AC_BLOWN_FUSE; /** @todo Who do I send these messages to? */
-			can_MAIN.data.data_u16[0] = battV[MPPT_ZERO];
-			can_MAIN.data.data_u16[1] = battV[MPPT_ONE];
-			can_MAIN.data.data_u16[2] = battV[MPPT_TWO];
+			can_MAIN.data.data_u16[0] = batteryV[MPPT_ZERO];
+			can_MAIN.data.data_u16[1] = batteryV[MPPT_ONE];
+			can_MAIN.data.data_u16[2] = batteryV[MPPT_TWO];
 			can_MAIN.data.data_u16[3] = 0; // No use for this yet.
 			can_transmit_MAIN();
 
 			error_flag = TRUE;
-			data_dump_flag = FALSE;
+			coulomb_data_dump_flag = FALSE;
 		}
 	}
 
@@ -436,14 +491,14 @@ static void IdleController(void) {
 					AC2PC_puts(buffer);
 
 					can_MAIN.address = AC_CAN_MAIN_BASE + AC_ARR_CABLE; /** @todo Who do I send these messages to? */
-					can_MAIN.data.data_u16[0] = battV[MPPT_ZERO];
-					can_MAIN.data.data_u16[1] = battV[MPPT_ONE];
-					can_MAIN.data.data_u16[2] = battV[MPPT_TWO];
+					can_MAIN.data.data_u16[0] = batteryV[MPPT_ZERO];
+					can_MAIN.data.data_u16[1] = batteryV[MPPT_ONE];
+					can_MAIN.data.data_u16[2] = batteryV[MPPT_TWO];
 					can_MAIN.data.data_u16[3] = 0; // No use for this yet.
 					can_transmit_MAIN();
 
 					error_flag = TRUE;
-					data_dump_flag = FALSE;
+					coulomb_data_dump_flag = FALSE;
 				}
 			}
 		}
@@ -466,9 +521,9 @@ static void IdleController(void) {
 		} else if(can_MAIN.status == CAN_RTR) {
 			can_MAIN.address = AC_CAN_MAIN_BASE; // Send out battery stats since we're still idling
 												 // and no coulomb count has occurred.
-			can_MAIN.data.data_u16[0] = battV[MPPT_ZERO];
-			can_MAIN.data.data_u16[1] = battV[MPPT_ONE];
-			can_MAIN.data.data_u16[2] = battV[MPPT_TWO];
+			can_MAIN.data.data_u16[0] = batteryV[MPPT_ZERO];
+			can_MAIN.data.data_u16[1] = batteryV[MPPT_ONE];
+			can_MAIN.data.data_u16[2] = batteryV[MPPT_TWO];
 			can_MAIN.data.data_u16[3] = 0; // No use for this yet.
 			can_transmit_MAIN();
 		} else {
@@ -970,7 +1025,7 @@ __interrupt void P2_ISR(void)
 	 coulomb_count_flag = TRUE;
 	 if(++timA_cnt == TIMA_ONE_SEC + 1) { // If timA_cnt is equal to 513, roll over.
 		 timA_cnt = 1;
-		 data_dump_flag = TRUE;
+		 coulomb_data_dump_flag = TRUE;
 
 		 if(error_blink_flag == TRUE) {
 			 P1OUT ^= ~LED1; // Blink the LED.
@@ -981,6 +1036,10 @@ __interrupt void P2_ISR(void)
 		 if(++timA_total_cnt == ULONG_MAX) { // This should never happen.
 			 timA_total_cnt = 0;
 		 }
+	 }
+
+	 if(timA_total_cnt % 2 == 0) { // If two seconds have passed, dump MPPT data.
+		 mppt_data_dump_flag == TRUE;
 	 }
 }
 

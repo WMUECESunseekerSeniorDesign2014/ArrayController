@@ -136,6 +136,9 @@ void 					can_mod_2( unsigned char address, unsigned char mask, unsigned char da
 #define AC_MPPT_STATUS		0x03
 #define AC_CURRENT			0x04
 #define AC_POWER			0x05
+#define AC_MPPT_ZERO		0x06
+#define AC_MPPT_ONE			0x07
+#define AC_MPPT_TWO			0x08
 //More defines to come!
 
 // Motor controller CAN base address and packet offsets
