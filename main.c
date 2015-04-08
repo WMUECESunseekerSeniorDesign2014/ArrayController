@@ -48,6 +48,7 @@ bool dc_504_flag = FALSE;
 bool coulomb_count_flag = FALSE;
 bool coulomb_data_dump_flag = FALSE;
 bool mppt_data_dump_flag = FALSE;
+bool thermistor_data_dump_flag = FALSE;
 bool error_blink_flag = FALSE;
 bool mppt_rtr_flag = FALSE;
 
@@ -124,291 +125,68 @@ static void HumanInterruptCheck(void) {
 }
 
 /**
- * Enable or disable a MPPT.
+ * InitController() should initialize the controller to the point where it should be ready to aid the car
+ * in its main operation. InitController should do the following:
+ *  1. Initialize the vital components (CLK, IO, etc).
+ *  2. Initialize the ADC.
+ *  3. Run diagnostics on the ADC.
+ *  4. Initialize CAN.
+ *  5. Initialize RS-232
  */
-static void ToggleMPPT(unsigned int mppt, FunctionalState state) {
-	can_MPPT.address = AC_CAN_BASE2 + mppt;
+static void InitController(void) {
+	int i = 0;
 
-	if(state == ON) {
-		can_MPPT.data.data_u16[0] = 0x0001;
-	} else {
-		can_MPPT.data.data_u16[0] = 0x0000;
-	}
+	/* Vital Initializations */
+	io_init();
+	clock_init();
+	timerA_init();
+	timerB_init();
+	// Turn off the error light.
+	ToggleError(FALSE);
+	P4OUT |= LED2 | LED3 | LED4 | LED5; // Turn all of the LEDs off.
+	P4OUT &= ~(LED5); // 0 0 0 1
 
-	can_MPPT.data.data_u16[3] = 0x0000; // to base address 0x600
-	can_MPPT.data.data_u16[2] = 0x0000;
-	can_MPPT.data.data_u16[1] = 0x0000;
+	/* Initialize the ADC. */
+	adc_spi_init();	/*Setup tranmission to ADC*/
+	adc_init();	/*Initialize ADC*/
+	adc_selfcal();	/*Run a selfcal on all channels*/
+	adc_read_convert(0);
+	P4OUT &= ~LED4;
+	P4OUT |= LED5; // 0 0 1 0
 
-	// Only transmit if needed to prevent hanging up the microcontroller with sending an
-	// unnecessary CAN message. This was broken into multiple IF statements for readability.
-	if(state == ON) { // The MPPT is OFF and we want to turn it on.
-		if((mppt_status & 0x01) == 0) {
-			can_transmit_MPPT();
-		} else if((mppt_status & 0x02) == 0) {
-			can_transmit_MPPT();
-		} else if((mppt_status & 0x04) == 0) {
-			can_transmit_MPPT();
-		}
-	} else { // The MPPT is ON and we want to turn it off.
-		if((mppt_status & 0x01) > 0) {
-			can_transmit_MPPT();
-		} else if((mppt_status & 0x02) > 0) {
-			can_transmit_MPPT();
-		} else if((mppt_status & 0x04) > 0) {
-			can_transmit_MPPT();
-		}
-	}
+	/* ADC Diagnostics */
+	adc_selfcal(); // Calibrate all of the channels.
+	P4OUT &= ~LED5; // 0 0 1 1
 
-	// Keep track of the status of each MPPT.
-	switch(mppt) {
-		case MPPT_ZERO:
-			mppt_status = (state == ON) ? mppt_status | 0x01 : mppt_status & ~(0x01);
-			break;
-		case MPPT_ONE:
-			can_transmit_MPPT();
-			mppt_status = (state == ON) ? mppt_status | 0x02 : mppt_status & ~(0x02);
-			break;
-		case MPPT_TWO:
-			can_transmit_MPPT();
-			mppt_status = (state == ON) ? mppt_status | 0x04 : mppt_status & ~(0x04);
-			break;
-		default:
-			break;
-	}
-}
+	/* Main CAN Initialization */
+	canspi_init();
+	can_init_MAIN();
+	P4OUT &= ~LED3; // 0 1 0 0
+	P4OUT |= (LED4 | LED5);
 
-/**
- * Get a data dump from the MPPTs.
- */
-static int GetMPPTData(unsigned int mppt) {
-	// Prevent the AC from spamming the MPPTs.
-	if(mppt_rtr_flag == FALSE) {
-		can_MPPT.address = AC_CAN_BASE1 + mppt;
-		can_sendRTR(); //Send RTR request
-		mppt_rtr_flag = TRUE;
-	}
+	/* MPPT CAN Initialization */
+	can_init_MPPT();
+	Delay(DELAY_HALFSEC); // Give the MPPTs time to initialize themselves.
+	for(i = 0; i <= MPPT_TWO; i++) { ToggleMPPT(i, OFF); } // Disable MPPTs initially.
+	P4OUT &= ~LED5; // 0 1 0 1
 
-	// Wait until the response is sent from the MPPT, and then read it.
-	if((P1IN & CAN_INTn0) == 0x00) {
-		can_receive_MPPT();
-		mppt_rtr_flag = FALSE;
-		switch(can_MPPT.status) {
-			case CAN_OK:
-			case CAN_RTR:
-				ToggleError(FALSE);
-				return 1;
-			case CAN_ERROR:
-				ToggleError(TRUE);
-			default:
-				return 0;
-		}
-	} else {
-		return 0;
-	}
-}
+	/* Initialize RS-232 */
+	// No interrupt has come through yet, so mark this to FALSE initially.
+	put_status_PC = FALSE;
+	Prompt_Active = FALSE;
+	AC2PC_init();
+	UCA0IE |= UCRXIE; // Enable interrupts on the RX line.
+	P4OUT &= ~(LED3 | LED4); // 0 1 1 0
+	P4OUT |= (LED5);
 
-/**
- * GeneralOperation() is where the Array Controller will be most of the time. In this function, the
- * ArrayController will:
- *  * Calculate the state-of-charge (coulomb count).
- *  * Dump telemetry data out to the CAN bus.
- *  * Poll the driver switches to see if the driver is requesting that the MPPTs turn off.
- *  * Poll the thermistors and, if needed, send an emergency CAN message.
- */
-static void GeneralOperation(void) {
-	// TIMA has gone off.
-	if(coulomb_count_flag == TRUE) {
-		CoulombCount();
-		coulomb_count_flag = FALSE;
-	}
+	/* GPIO Interrupts */
+	P2IE = DRIVER_SW1 | DRIVER_SW2 | DRIVER_SW3;
+	// Driver switches interrupt on low-to-high transitions.
+	P2IES = ~(DRIVER_SW1 | DRIVER_SW2 | DRIVER_SW3);
+	P4OUT &= ~(LED5); // 0 1 1 1
 
-	// One second has passed.
-	if(coulomb_data_dump_flag == TRUE) {
-		ReportCoulombCount();
-		coulomb_data_dump_flag = FALSE;
-	}
-
-	// Enable/disable MPPTs based on driver switch status.
-	// The first MPPT.
-	if((dr_switch_flag & 0x08) > 0) { // Switch is on.
-		mppt_control |= ~(0xFE);
-	} else {
-		// The driver has ultimate control over turning off the MPPT.
-		ToggleMPPT(MPPT_ZERO, OFF);
-		mppt_control &= 0xFE;
-	}
-
-	// The second MPPT.
-	if((dr_switch_flag & 0x01) > 0) { // Switch is on.
-		mppt_control &= ~(0xFD);
-	} else {
-		ToggleMPPT(MPPT_ONE, OFF);
-		mppt_control &= 0xFD;
-	}
-
-	// The third MPPT.
-	if((dr_switch_flag & 0x04) > 0) { // Switch is on.
-		mppt_control &= ~(0xFB);
-	} else {
-		ToggleMPPT(MPPT_TWO, OFF);
-		mppt_control &= 0xFB;
-	}
-
-	// Calculate the percentage of deliverable power left in the batteries. powerAvg is divided by 3600
-	// to convert it from watt-seconds to watt-hours.
-	battPercentage = ((BATT_MAX_WATTH - (powerAvg / 3600)) / BATT_MAX_WATTH) * 100; // Convert to a percentage.
-
-	// Enable/disable the MPPTs based on the percentage that was calculated AND if the driver is allowing
-	// us to control the MPPTs.
-	if(battPercentage <= BATT_HIGH_LOWER && (mppt_control & 0x01) > 0) {
-		ToggleMPPT(MPPT_ZERO, ON);
-	} else if(battPercentage >= BATT_HIGH_UPPER) {
-		ToggleMPPT(MPPT_ZERO, OFF);
-	}
-
-	if(battPercentage <= BATT_MEDI && (mppt_control & 0x02) > 0) {
-		ToggleMPPT(MPPT_ONE, ON);
-	} else {
-		ToggleMPPT(MPPT_ONE, OFF);
-	}
-
-	if(battPercentage <= BATT_LOW && (mppt_control & 0x04) > 0) {
-		ToggleMPPT(MPPT_TWO, ON);
-	} else {
-		ToggleMPPT(MPPT_TWO, OFF);
-	}
-
-	if(mppt_data_dump_flag == TRUE) {
-		switch(canMpptState) {
-			case MPPT0:
-				if(GetMPPTData(MPPT_ZERO) == 1) {
-					arrayV[MPPT_ZERO] = can_MPPT.data.data_u16[0];
-					arrayI[MPPT_ZERO] = can_MPPT.data.data_16[1];
-					batteryV[MPPT_ZERO] = can_MPPT.data.data_u16[2];
-					arrayT[MPPT_ZERO] = can_MPPT.data.data_u16[3];
-
-					can_MAIN.address = AC_CAN_MAIN_BASE + AC_MPPT_ZERO;
-					can_MAIN.data.data_u16[0] = arrayV[MPPT_ZERO];
-					can_MAIN.data.data_u16[1] = arrayI[MPPT_ZERO];
-					can_MAIN.data.data_u16[2] = batteryV[MPPT_ZERO];
-					can_MAIN.data.data_u16[3] = arrayT[MPPT_ZERO];
-					can_transmit_MAIN();
-
-					canMpptState = MPPT1;
-				}
-				break;
-			case MPPT1:
-				if(GetMPPTData(MPPT_ONE) == 1) {
-					arrayV[MPPT_ONE] = can_MPPT.data.data_u16[0];
-					arrayI[MPPT_ONE] = can_MPPT.data.data_16[1];
-					batteryV[MPPT_ONE] = can_MPPT.data.data_u16[2];
-					arrayT[MPPT_ONE] = can_MPPT.data.data_u16[3];
-
-					can_MAIN.address = AC_CAN_MAIN_BASE + AC_MPPT_ONE;
-					can_MAIN.data.data_u16[0] = arrayV[MPPT_ONE];
-					can_MAIN.data.data_u16[1] = arrayI[MPPT_ONE];
-					can_MAIN.data.data_u16[2] = batteryV[MPPT_ONE];
-					can_MAIN.data.data_u16[3] = arrayT[MPPT_ONE];
-					can_transmit_MAIN();
-
-					canMpptState = MPPT2;
-				}
-				break;
-			case MPPT2:
-				if(GetMPPTData(MPPT_TWO) == 1) {
-					arrayV[MPPT_TWO] = can_MPPT.data.data_u16[0];
-					arrayI[MPPT_TWO] = can_MPPT.data.data_16[1];
-					batteryV[MPPT_TWO] = can_MPPT.data.data_u16[2];
-					arrayT[MPPT_TWO] = can_MPPT.data.data_u16[3];
-
-					can_MAIN.address = AC_CAN_MAIN_BASE + AC_MPPT_TWO;
-					can_MAIN.data.data_u16[0] = arrayV[MPPT_TWO];
-					can_MAIN.data.data_u16[1] = arrayI[MPPT_TWO];
-					can_MAIN.data.data_u16[2] = batteryV[MPPT_TWO];
-					can_MAIN.data.data_u16[3] = arrayT[MPPT_TWO];
-					can_transmit_MAIN();
-
-					canMpptState = MPPT0;
-				}
-				break;
-		}
-
-		mppt_data_dump_flag == FALSE;
-	}
-
-
-	switch(adcState) {
-		case AIN0:
-			tempOne = ConvertADCVal(adcState);
-			adcState = AIN1;
-			break;
-		case AIN1:
-			tempTwo = ConvertADCVal(adcState);
-			adcState = AIN2;
-			break;
-		case AIN2:
-			tempThree = ConvertADCVal(adcState);
-			adcState = AIN3;
-			break;
-		case AIN3:
-			refTemp = ConvertADCVal(adcState);
-			adcState = REF;
-			break;
-		case REF:
-			adcRef = ConvertADCVal(adcState);
-			adcState = INT12V;
-			break;
-		case INT12V:
-			internal12V = ConvertADCVal(adcState);
-			adcState = AIN0;
-			break;
-	}
-}
-
-/**
- * ChargeOnly() is where the Array Controller will simply manage charging the batteries. It will
- * perform the following operations:
- *  * Calculate the state-of-charge (coulomb count).
- *  * Disable the MPPTs as the batteries fill.
- * @note Max voltage of the battery array is 160V.
- * @note This is unfinished and untested; Dr. Bazuin has requested we leave this state alone as
- * 		 Sunseeker currently doesn't have a way to indicate when the Array Controller should
- * 		 switch to CHARGING.
- */
-static void ChargeOnly(void) {
-	signed int battPercentage = 0;
-
-	if(coulomb_count_flag == TRUE) {
-		CoulombCount();
-		coulomb_count_flag = FALSE;
-	}
-
-	if(data_dump_flag == TRUE) {
-		// Calculate the percentage of deliverable power left in the batteries. powerAvg is divided by 3600
-		// to convert it from watt-seconds to watt-hours.
-		battPercentage = ((BATT_MAX_WATTH - (powerAvg / 3600)) / BATT_MAX_WATTH) * 100; // Convert to a percentage.
-
-		// Enable/disable the MPPTs based on the percentage that was calculated.
-		if(battPercentage <= BATT_HIGH_LOWER) {
-			ToggleMPPT(MPPT_ZERO, ON);
-		} else if(battPercentage >= BATT_HIGH_UPPER) {
-			ToggleMPPT(MPPT_ZERO, OFF);
-		}
-
-		if(battPercentage <= BATT_MEDI) {
-			ToggleMPPT(MPPT_ONE, ON);
-		} else {
-			ToggleMPPT(MPPT_ONE, OFF);
-		}
-
-		if(battPercentage <= BATT_LOW) {
-			ToggleMPPT(MPPT_TWO, ON);
-		} else {
-			ToggleMPPT(MPPT_TWO, OFF);
-		}
-
-		ReportCoulombCount();
-	}
+	// Set up the LEDs for the next state.
+	P4OUT |= LED2 | LED3 | LED4 | LED5;
 }
 
 /**
@@ -510,6 +288,7 @@ static void IdleController(void) {
 
 		if(can_MAIN.status == CAN_OK) {
 			switch(can_MAIN.address) {
+			/** @todo Figure out where to find the enable bit here. */
 				case DC_CAN_BASE + DC_SWITCH:
 					dc_504_flag = TRUE;
 					/** @todo Do we need to do anything with the data sent with 504? */
@@ -545,68 +324,308 @@ static void IdleController(void) {
 }
 
 /**
- * InitController() should initialize the controller to the point where it should be ready to aid the car
- * in its main operation. InitController should do the following:
- *  1. Initialize the vital components (CLK, IO, etc).
- *  2. Initialize the ADC.
- *  3. Run diagnostics on the ADC.
- *  4. Initialize CAN.
- *  5. Initialize RS-232
+ * GeneralOperation() is where the Array Controller will be most of the time. In this function, the
+ * ArrayController will:
+ *  * Calculate the state-of-charge (coulomb count).
+ *  * Dump telemetry data out to the CAN bus.
+ *  * Poll the driver switches to see if the driver is requesting that the MPPTs turn off.
+ *  * Poll the thermistors and, if needed, send an emergency CAN message.
  */
-static void InitController(void) {
-	int i = 0;
+static void GeneralOperation(void) {
+	// TIMA has gone off.
+	if(coulomb_count_flag == TRUE) {
+		CoulombCount();
+		coulomb_count_flag = FALSE;
+	}
 
-	/* Vital Initializations */
-	io_init();
-	clock_init();
-	timerA_init();
-	timerB_init();
-	// Turn off the error light.
-	ToggleError(FALSE);
-	P4OUT |= LED2 | LED3 | LED4 | LED5; // Turn all of the LEDs off.
-	P4OUT &= ~(LED5); // 0 0 0 1
+	// One second has passed.
+	if(coulomb_data_dump_flag == TRUE) {
+		ReportCoulombCount();
+		coulomb_data_dump_flag = FALSE;
+	}
 
-	/* Initialize the ADC. */
-	adc_spi_init();	/*Setup tranmission to ADC*/
-	adc_init();	/*Initialize ADC*/
-	adc_selfcal();	/*Run a selfcal on all channels*/
-	adc_read_convert(0);
-	P4OUT &= ~LED4;
-	P4OUT |= LED5; // 0 0 1 0
+	// Enable/disable MPPTs based on driver switch status.
+	// The first MPPT.
+	if((dr_switch_flag & 0x08) > 0) { // Switch is on.
+		mppt_control |= ~(0xFE);
+	} else {
+		// The driver has ultimate control over turning off the MPPT.
+		ToggleMPPT(MPPT_ZERO, OFF);
+		mppt_control &= 0xFE;
+	}
 
-	/* ADC Diagnostics */
-	adc_selfcal(); // Calibrate all of the channels.
-	P4OUT &= ~LED5; // 0 0 1 1
+	// The second MPPT.
+	if((dr_switch_flag & 0x01) > 0) { // Switch is on.
+		mppt_control &= ~(0xFD);
+	} else {
+		ToggleMPPT(MPPT_ONE, OFF);
+		mppt_control &= 0xFD;
+	}
 
-	/* Main CAN Initialization */
-	canspi_init();
-	can_init_MAIN();
-	P4OUT &= ~LED3; // 0 1 0 0
-	P4OUT |= (LED4 | LED5);
+	// The third MPPT.
+	if((dr_switch_flag & 0x04) > 0) { // Switch is on.
+		mppt_control &= ~(0xFB);
+	} else {
+		ToggleMPPT(MPPT_TWO, OFF);
+		mppt_control &= 0xFB;
+	}
 
-	/* MPPT CAN Initialization */
-	can_init_MPPT();
-	Delay(DELAY_HALFSEC); // Give the MPPTs time to initialize themselves.
-	for(i = 0; i <= MPPT_TWO; i++) { ToggleMPPT(i, OFF); } // Disable MPPTs initially.
-	P4OUT &= ~LED5; // 0 1 0 1
+	// Calculate the percentage of deliverable power left in the batteries. powerAvg is divided by 3600
+	// to convert it from watt-seconds to watt-hours.
+	battPercentage = ((BATT_MAX_WATTH - (powerAvg / 3600)) / BATT_MAX_WATTH) * 100; // Convert to a percentage.
 
-	/* Initialize RS-232 */
-	// No interrupt has come through yet, so mark this to FALSE initially.
-	put_status_PC = FALSE;
-	Prompt_Active = FALSE;
-	AC2PC_init();
-	UCA0IE |= UCRXIE; // Enable interrupts on the RX line.
-	P4OUT &= ~(LED3 | LED4); // 0 1 1 0
-	P4OUT |= (LED5);
+	// Enable/disable the MPPTs based on the percentage that was calculated AND if the driver is allowing
+	// us to control the MPPTs.
+	if(battPercentage <= BATT_HIGH_LOWER && (mppt_control & 0x01) > 0) {
+		ToggleMPPT(MPPT_ZERO, ON);
+	} else if(battPercentage >= BATT_HIGH_UPPER) {
+		ToggleMPPT(MPPT_ZERO, OFF);
+	}
 
-	/* GPIO Interrupts */
-	P2IE = DRIVER_SW1 | DRIVER_SW2 | DRIVER_SW3;
-	// Driver switches interrupt on low-to-high transitions.
-	P2IES = ~(DRIVER_SW1 | DRIVER_SW2 | DRIVER_SW3);
-	P4OUT &= ~(LED5); // 0 1 1 1
+	if(battPercentage <= BATT_MEDI && (mppt_control & 0x02) > 0) {
+		ToggleMPPT(MPPT_ONE, ON);
+	} else {
+		ToggleMPPT(MPPT_ONE, OFF);
+	}
 
-	// Set up the LEDs for the next state.
-	P4OUT |= LED2 | LED3 | LED4 | LED5;
+	if(battPercentage <= BATT_LOW && (mppt_control & 0x04) > 0) {
+		ToggleMPPT(MPPT_TWO, ON);
+	} else {
+		ToggleMPPT(MPPT_TWO, OFF);
+	}
+
+	// Dump MPPT data out on the main CAN bus.
+	if(mppt_data_dump_flag == TRUE) {
+		switch(canMpptState) {
+			case MPPT0:
+				if(GetMPPTData(MPPT_ZERO) == 1) {
+					arrayV[MPPT_ZERO] = can_MPPT.data.data_u16[0];
+					arrayI[MPPT_ZERO] = can_MPPT.data.data_16[1];
+					batteryV[MPPT_ZERO] = can_MPPT.data.data_u16[2];
+					arrayT[MPPT_ZERO] = can_MPPT.data.data_u16[3];
+
+					can_MAIN.address = AC_CAN_MAIN_BASE + AC_MPPT_ZERO;
+					can_MAIN.data.data_u16[0] = arrayV[MPPT_ZERO];
+					can_MAIN.data.data_u16[1] = arrayI[MPPT_ZERO];
+					can_MAIN.data.data_u16[2] = batteryV[MPPT_ZERO];
+					can_MAIN.data.data_u16[3] = arrayT[MPPT_ZERO];
+					can_transmit_MAIN();
+
+					canMpptState = MPPT1;
+				}
+				break;
+			case MPPT1:
+				if(GetMPPTData(MPPT_ONE) == 1) {
+					arrayV[MPPT_ONE] = can_MPPT.data.data_u16[0];
+					arrayI[MPPT_ONE] = can_MPPT.data.data_16[1];
+					batteryV[MPPT_ONE] = can_MPPT.data.data_u16[2];
+					arrayT[MPPT_ONE] = can_MPPT.data.data_u16[3];
+
+					can_MAIN.address = AC_CAN_MAIN_BASE + AC_MPPT_ONE;
+					can_MAIN.data.data_u16[0] = arrayV[MPPT_ONE];
+					can_MAIN.data.data_u16[1] = arrayI[MPPT_ONE];
+					can_MAIN.data.data_u16[2] = batteryV[MPPT_ONE];
+					can_MAIN.data.data_u16[3] = arrayT[MPPT_ONE];
+					can_transmit_MAIN();
+
+					canMpptState = MPPT2;
+				}
+				break;
+			case MPPT2:
+				if(GetMPPTData(MPPT_TWO) == 1) {
+					arrayV[MPPT_TWO] = can_MPPT.data.data_u16[0];
+					arrayI[MPPT_TWO] = can_MPPT.data.data_16[1];
+					batteryV[MPPT_TWO] = can_MPPT.data.data_u16[2];
+					arrayT[MPPT_TWO] = can_MPPT.data.data_u16[3];
+
+					can_MAIN.address = AC_CAN_MAIN_BASE + AC_MPPT_TWO;
+					can_MAIN.data.data_u16[0] = arrayV[MPPT_TWO];
+					can_MAIN.data.data_u16[1] = arrayI[MPPT_TWO];
+					can_MAIN.data.data_u16[2] = batteryV[MPPT_TWO];
+					can_MAIN.data.data_u16[3] = arrayT[MPPT_TWO];
+					can_transmit_MAIN();
+
+					canMpptState = MPPT0;
+				}
+				break;
+		}
+
+		mppt_data_dump_flag == FALSE;
+	}
+
+
+	// Staggered conversions of ADC values.
+	switch(adcState) {
+		case AIN0:
+			tempOne = ConvertADCVal(adcState);
+			adcState = AIN1;
+			break;
+		case AIN1:
+			tempTwo = ConvertADCVal(adcState);
+			adcState = AIN2;
+			break;
+		case AIN2:
+			tempThree = ConvertADCVal(adcState);
+			adcState = AIN3;
+			break;
+		case AIN3:
+			refTemp = ConvertADCVal(adcState);
+			adcState = REF;
+			break;
+		case REF:
+			adcRef = ConvertADCVal(adcState);
+			adcState = INT12V;
+			break;
+		case INT12V:
+			internal12V = ConvertADCVal(adcState);
+			adcState = AIN0;
+			break;
+	}
+
+	// Dump the thermistor values out on the main CAN bus.
+	if(thermistor_data_dump_flag == TRUE) {
+		can_MAIN.address = AC_CAN_MAIN_BASE + AC_THERM_ONE;
+		can_MAIN.data.data_u32[0] = tempOne;
+		can_MAIN.data.data_u32[0] = tempTwo;
+		can_transmit_MAIN();
+
+		can_MAIN.address = AC_CAN_MAIN_BASE + AC_THERM_TWO;
+		can_MAIN.data.data_u32[0] = tempThree;
+		can_MAIN.data.data_u32[0] = refTemp;
+		can_transmit_MAIN();
+
+		thermistor_data_dump_flag = FALSE;
+	}
+}
+
+/**
+ * ChargeOnly() is where the Array Controller will simply manage charging the batteries. It will
+ * perform the following operations:
+ *  * Calculate the state-of-charge (coulomb count).
+ *  * Disable the MPPTs as the batteries fill.
+ * @note Max voltage of the battery array is 160V.
+ * @note This is unfinished and untested; Dr. Bazuin has requested we leave this state alone as
+ * 		 Sunseeker currently doesn't have a way to indicate when the Array Controller should
+ * 		 switch to CHARGING.
+ */
+static void ChargeOnly(void) {
+	signed int battPercentage = 0;
+
+	if(coulomb_count_flag == TRUE) {
+		CoulombCount();
+		coulomb_count_flag = FALSE;
+	}
+
+	if(data_dump_flag == TRUE) {
+		// Calculate the percentage of deliverable power left in the batteries. powerAvg is divided by 3600
+		// to convert it from watt-seconds to watt-hours.
+		battPercentage = ((BATT_MAX_WATTH - (powerAvg / 3600)) / BATT_MAX_WATTH) * 100; // Convert to a percentage.
+
+		// Enable/disable the MPPTs based on the percentage that was calculated.
+		if(battPercentage <= BATT_HIGH_LOWER) {
+			ToggleMPPT(MPPT_ZERO, ON);
+		} else if(battPercentage >= BATT_HIGH_UPPER) {
+			ToggleMPPT(MPPT_ZERO, OFF);
+		}
+
+		if(battPercentage <= BATT_MEDI) {
+			ToggleMPPT(MPPT_ONE, ON);
+		} else {
+			ToggleMPPT(MPPT_ONE, OFF);
+		}
+
+		if(battPercentage <= BATT_LOW) {
+			ToggleMPPT(MPPT_TWO, ON);
+		} else {
+			ToggleMPPT(MPPT_TWO, OFF);
+		}
+
+		ReportCoulombCount();
+	}
+}
+
+/**
+ * Enable or disable a MPPT.
+ */
+static void ToggleMPPT(unsigned int mppt, FunctionalState state) {
+	can_MPPT.address = AC_CAN_BASE2 + mppt;
+
+	if(state == ON) {
+		can_MPPT.data.data_u16[0] = 0x0001;
+	} else {
+		can_MPPT.data.data_u16[0] = 0x0000;
+	}
+
+	can_MPPT.data.data_u16[3] = 0x0000; // to base address 0x600
+	can_MPPT.data.data_u16[2] = 0x0000;
+	can_MPPT.data.data_u16[1] = 0x0000;
+
+	// Only transmit if needed to prevent hanging up the microcontroller with sending an
+	// unnecessary CAN message. This was broken into multiple IF statements for readability.
+	if(state == ON) { // The MPPT is OFF and we want to turn it on.
+		if((mppt_status & 0x01) == 0) {
+			can_transmit_MPPT();
+		} else if((mppt_status & 0x02) == 0) {
+			can_transmit_MPPT();
+		} else if((mppt_status & 0x04) == 0) {
+			can_transmit_MPPT();
+		}
+	} else { // The MPPT is ON and we want to turn it off.
+		if((mppt_status & 0x01) > 0) {
+			can_transmit_MPPT();
+		} else if((mppt_status & 0x02) > 0) {
+			can_transmit_MPPT();
+		} else if((mppt_status & 0x04) > 0) {
+			can_transmit_MPPT();
+		}
+	}
+
+	// Keep track of the status of each MPPT.
+	switch(mppt) {
+		case MPPT_ZERO:
+			mppt_status = (state == ON) ? mppt_status | 0x01 : mppt_status & ~(0x01);
+			break;
+		case MPPT_ONE:
+			can_transmit_MPPT();
+			mppt_status = (state == ON) ? mppt_status | 0x02 : mppt_status & ~(0x02);
+			break;
+		case MPPT_TWO:
+			can_transmit_MPPT();
+			mppt_status = (state == ON) ? mppt_status | 0x04 : mppt_status & ~(0x04);
+			break;
+		default:
+			break;
+	}
+}
+
+/**
+ * Get a data dump from the MPPTs.
+ */
+static int GetMPPTData(unsigned int mppt) {
+	// Prevent the AC from spamming the MPPTs.
+	if(mppt_rtr_flag == FALSE) {
+		can_MPPT.address = AC_CAN_BASE1 + mppt;
+		can_sendRTR(); //Send RTR request
+		mppt_rtr_flag = TRUE;
+	}
+
+	// Wait until the response is sent from the MPPT, and then read it.
+	if((P1IN & CAN_INTn0) == 0x00) {
+		can_receive_MPPT();
+		mppt_rtr_flag = FALSE;
+		switch(can_MPPT.status) {
+			case CAN_OK:
+			case CAN_RTR:
+				ToggleError(FALSE);
+				return 1;
+			case CAN_ERROR:
+				ToggleError(TRUE);
+			default:
+				return 0;
+		}
+	} else {
+		return 0;
+	}
 }
 
 /**
@@ -1026,6 +1045,7 @@ __interrupt void P2_ISR(void)
 	 if(++timA_cnt == TIMA_ONE_SEC + 1) { // If timA_cnt is equal to 513, roll over.
 		 timA_cnt = 1;
 		 coulomb_data_dump_flag = TRUE;
+		 thermistor_data_dump_flag = TRUE;
 
 		 if(error_blink_flag == TRUE) {
 			 P1OUT ^= ~LED1; // Blink the LED.
