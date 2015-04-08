@@ -103,8 +103,6 @@ int main(void) {
     		break;
     	}
     }
-	
-	return 0;
 }
 
 static void HumanInterruptCheck(void) {
@@ -243,7 +241,7 @@ static void IdleController(void) {
 			sprintf(buffer, "0: %d V, 1: %d V, 2: %d V\r\n", battV[MPPT_ZERO], battV[MPPT_ONE], battV[MPPT_TWO]);
 			AC2PC_puts(buffer);
 
-			can_MAIN.address = AC_CAN_MAIN_BASE + AC_BLOWN_FUSE; /** @todo Who do I send these messages to? */
+			can_MAIN.address = AC_CAN_MAIN_BASE + AC_BLOWN_FUSE;
 			can_MAIN.data.data_u16[0] = batteryV[MPPT_ZERO];
 			can_MAIN.data.data_u16[1] = batteryV[MPPT_ONE];
 			can_MAIN.data.data_u16[2] = batteryV[MPPT_TWO];
@@ -268,7 +266,7 @@ static void IdleController(void) {
 					sprintf(buffer, "0: %d V, 1: %d V, 2: %d V\r\n", battV[MPPT_ZERO], battV[MPPT_ONE], battV[MPPT_TWO]);
 					AC2PC_puts(buffer);
 
-					can_MAIN.address = AC_CAN_MAIN_BASE + AC_ARR_CABLE; /** @todo Who do I send these messages to? */
+					can_MAIN.address = AC_CAN_MAIN_BASE + AC_ARR_CABLE;
 					can_MAIN.data.data_u16[0] = batteryV[MPPT_ZERO];
 					can_MAIN.data.data_u16[1] = batteryV[MPPT_ONE];
 					can_MAIN.data.data_u16[2] = batteryV[MPPT_TWO];
@@ -291,7 +289,6 @@ static void IdleController(void) {
 			/** @todo Figure out where to find the enable bit here. */
 				case DC_CAN_BASE + DC_SWITCH:
 					dc_504_flag = TRUE;
-					/** @todo Do we need to do anything with the data sent with 504? */
 					break;
 				default:
 					// Do nothing because we don't know what the message is.
@@ -452,7 +449,7 @@ static void GeneralOperation(void) {
 				break;
 		}
 
-		mppt_data_dump_flag == FALSE;
+		mppt_data_dump_flag = FALSE;
 	}
 
 
@@ -644,7 +641,7 @@ void CoulombCount(void) {
 
 	// Convert the value read from the shunt back into a voltage.
 	shuntVal = ((adc_in((char)SHUNT) - adc_in((char)SHUNT_BIAS)) * ADC_REF) / ADC_RESO;
-	shuntCurrent /= SHUNT_OHM; // Get the current.
+	shuntCurrent = shuntVal / SHUNT_OHM; // Get the current.
 	coulombCnt += (shuntCurrent - coulombCnt) >> C_CNT_SHIFT;
 }
 
@@ -1045,7 +1042,8 @@ __interrupt void P2_ISR(void)
  __interrupt void TIMERA_ISR(void)
 {
 	 coulomb_count_flag = TRUE;
-	 if(++timA_cnt == TIMA_ONE_SEC + 1) { // If timA_cnt is equal to 513, roll over.
+	 timA_cnt++;
+	 if(timA_cnt == TIMA_ONE_SEC + 1) { // If timA_cnt is equal to 513, roll over.
 		 timA_cnt = 1;
 		 coulomb_data_dump_flag = TRUE;
 		 thermistor_data_dump_flag = TRUE;
@@ -1056,13 +1054,15 @@ __interrupt void P2_ISR(void)
 			 P1OUT |= LED1; // Disable the LED.
 		 }
 
-		 if(++timA_total_cnt == ULONG_MAX) { // This should never happen.
+		 ++timA_total_cnt;
+
+		 if(timA_total_cnt == ULONG_MAX) { // This should never happen.
 			 timA_total_cnt = 0;
 		 }
 	 }
 
 	 if(timA_total_cnt % 2 == 0) { // If two seconds have passed, dump MPPT data.
-		 mppt_data_dump_flag == TRUE;
+		 mppt_data_dump_flag = TRUE;
 	 }
 }
 
