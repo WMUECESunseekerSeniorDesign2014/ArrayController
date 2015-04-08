@@ -172,13 +172,10 @@ static void ToggleMPPT(unsigned int mppt, FunctionalState state) {
 
 /**
  * Get a data dump from the MPPTs.
- * @todo Austin is still testing this, so it may change later.
  */
 static int GetMPPTData(unsigned int mppt) {
 	can_MPPT.address = AC_CAN_BASE1 + mppt;
-	can_sendRTR(0); //Send RTR request
-	can_transmit_MPPT();
-	can_sendRTR(1);
+	can_sendRTR(); //Send RTR request
 
 	// Wait until the response is sent from the MPPT, and then read it.
 	if((P1IN & CAN_INTn0) == 0x00) {
