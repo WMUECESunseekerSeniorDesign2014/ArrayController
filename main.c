@@ -69,6 +69,10 @@ unsigned long powerAvg = 0;
 int i;
 
 
+/**
+ * @todo Add testing code for system testing tomorrow. We need to be able to ignore the 504 message, read from one MPPT, etc.
+ */
+
 /*
  * main.c
  */
