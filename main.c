@@ -313,8 +313,9 @@ static void ChargeOnly(void) {
 	}
 
 	if(data_dump_flag == TRUE) {
-		/** @todo Figure out if Dr. Bazuin wants this functionality. */
-		battPercentage = ((BATT_MAX_I - coulombCnt) / BATT_MAX_I) * 100; // Convert to a percentage.
+		// Calculate the percentage of deliverable power left in the batteries. powerAvg is divided by 3600
+		// to convert it from watt-seconds to watt-hours.
+		battPercentage = ((BATT_MAX_WATTH - (powerAvg / 3600)) / BATT_MAX_WATTH) * 100; // Convert to a percentage.
 
 		// Enable/disable the MPPTs based on the percentage that was calculated.
 		if(battPercentage <= BATT_HIGH_LOWER) {
