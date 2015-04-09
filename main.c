@@ -94,6 +94,7 @@ int main(void) {
 				_EINT(); // Enable interrupts
 				int_enable_flag = true;
 			}
+    		//ToggleMPPT(0, ON); /** @todo Remove when we're done testing! */
 			P4OUT &= ~(LED4 | LED5); // Turn on two LEDs to show we're idling.
 			IdleController();
     		break;
@@ -260,6 +261,7 @@ static void IdleController(void) {
 		timA_total_cnt = 0;
 		battVoltage = battV[0]; // All battery voltages should be about the same.
 		P4OUT &= ~(LED3 | LED4 | LED5); // 0 1 1 1
+		mppt_rtr_request_flag = true;
 	}
 
 	ToggleError(error_flag);
@@ -275,7 +277,6 @@ static void IdleController(void) {
  */
 static void GeneralOperation(void) {
 	unsigned int battPercentage = 0;
-	mppt_rtr_request_flag = true;
 
 	// Checks to see if a RTR request was received and responds appropriately.
 	RTRRespond();
