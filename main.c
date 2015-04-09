@@ -213,7 +213,7 @@ static void IdleController(void) {
 
 	P4OUT &= ~(LED5); // 0 0 0 1
 	// Loop and get data from MPPT.
-	for(i = 0; i <= MPPT_TWO; i++) {
+	for(i = 0; i <= MPPT_ZERO; i++) {
 		// If the previous call to GetMPPTData() resulted in an error, roll back i.
 		if(status == 0) {
 			i = (i <= 1) ? 0 : (i - 1);
@@ -234,35 +234,13 @@ static void IdleController(void) {
 		status = GetMPPTData(i);
 	}
 
-	// If the battery voltages as reported by the MPPTs are different, then a fuse
-	// has blown. Note that if the first statement is true, the system will not check
-	// the second; if the first statement is false, the system will check the second
-	// statement and since battV[MPPT_ZERO] == battV[MPPT_ONE], a third comparison
-	// is not needed.
-	if((battV[MPPT_ZERO] != battV[MPPT_ONE]) || (battV[MPPT_ONE] != battV[MPPT_TWO])) {
-		// Dump data via RS-232 and CAN every second.
-		if(coulomb_data_dump_flag == true) {
-			AC2PC_puts("BLOWN FUSE\r\n");
-			sprintf(buffer, "%d,%d,%d\r\n", battV[MPPT_ZERO], battV[MPPT_ONE], battV[MPPT_TWO]);
-			AC2PC_puts(buffer);
-
-			can_MAIN.address = AC_CAN_MAIN_BASE + AC_BLOWN_FUSE;
-			can_MAIN.data.data_u16[0] = batteryV[MPPT_ZERO];
-			can_MAIN.data.data_u16[1] = batteryV[MPPT_ONE];
-			can_MAIN.data.data_u16[2] = batteryV[MPPT_TWO];
-			can_MAIN.data.data_u16[3] = 0; // No use for this yet.
-			can_transmit_MAIN();
-
-			error_flag = true;
-			coulomb_data_dump_flag = false;
-		}
-	}
+	/** @note Removed safety checks as they're not usable in the system testing apparatus. */
 
 	// Broke this into multiple if statements for readability. This verifies that the
 	// voltages the MPPTs read from the batteries are different and they're not within
 	// the maximum voltage range. If the inner most if statement is reached, then the
 	// array is not connected to the rest of the car!
-	if(battV[MPPT_ZERO] == battV[MPPT_ONE]) {
+/*	if(battV[MPPT_ZERO] == battV[MPPT_ONE]) {
 		if(battV[MPPT_ONE] == battV[MPPT_TWO]) {
 			if((battV[MPPT_ZERO] >= BATT_MAX_LOWER_V) && (battV[MPPT_ZERO] <= BATT_MAX_UPPER_V)) {
 				// Dump data via RS-232 and CAN every second.
@@ -283,7 +261,7 @@ static void IdleController(void) {
 				}
 			}
 		}
-	}
+	}*/
 
 	// Poll CAN interrupt to see if we have received the 504 message.
 	if((P4IN & (CAN_INTn1)) == 0x00) {
@@ -303,8 +281,8 @@ static void IdleController(void) {
 			can_MAIN.address = AC_CAN_MAIN_BASE + AC_IDLE_RTR; // Send out battery stats since we're still idling
 												 	 	 	   // and no coulomb count has occurred.
 			can_MAIN.data.data_u16[0] = batteryV[MPPT_ZERO];
-			can_MAIN.data.data_u16[1] = batteryV[MPPT_ONE];
-			can_MAIN.data.data_u16[2] = batteryV[MPPT_TWO];
+			can_MAIN.data.data_u16[1] = 0;
+			can_MAIN.data.data_u16[2] = 0;
 			can_MAIN.data.data_u16[3] = 0; // No use for this yet.
 			can_transmit_MAIN();
 		} else {
