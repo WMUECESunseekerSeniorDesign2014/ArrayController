@@ -52,7 +52,7 @@ volatile bool thermistor_data_dump_flag = false;
 volatile bool error_blink_flag = false;
 volatile bool mppt_rtr_flag = false;
 
-char mppt_status = 0; // Bits 0-2 indicate if the MPPT is enabled or disabled.
+char mppt_status = 0x01; // Bits 0-2 indicate if the MPPT is enabled or disabled.
 char mppt_control = 0x0F; // Bits 0-2 indicate if we are intelligently controlling the MPPTs.
 
 // Every time timA_cnt hits 512, timA_total_cnt needs to be incremented.
@@ -165,8 +165,6 @@ static void InitController(void) {
 
 	/* MPPT CAN Initialization */
 	can_init_MPPT();
-	Delay(DELAY_HALFSEC); // Give the MPPTs time to initialize themselves.
-	//for(i = 0; i <= MPPT_TWO; i++) { ToggleMPPT(i, OFF); } // Disable MPPTs initially.
 	P4OUT &= ~LED5; // 0 1 0 1
 
 	/* Initialize RS-232 */
@@ -212,9 +210,6 @@ static void IdleController(void) {
 	bool error_flag = false;
 
 	P4OUT &= ~(LED5); // 0 0 0 1
-
-	/** @todo Write code to loop and wait for the MPPTs to be turned on. */
-
 	// Loop and get data from MPPT.
 	for(i = 0; i <= MPPT_ZERO; i++) {
 		// If the previous call to GetMPPTData() resulted in an error, roll back i.
@@ -236,6 +231,13 @@ static void IdleController(void) {
 
 		status = GetMPPTData(i);
 	}
+
+	while((mppt_status & 0x01) > 0) {
+		//Delay(DELAY_HALFSEC); // Give the MPPTs time to initialize themselves.
+		for(i = 0; i <= MPPT_ZERO; i++) { ToggleMPPT(i, OFF); } // Disable MPPTs.
+	}
+
+	dc_504_flag == TRUE;
 
 	/** @note Removed safety checks as they're not usable in the system testing apparatus. */
 
@@ -267,31 +269,31 @@ static void IdleController(void) {
 	}*/
 
 	// Poll CAN interrupt to see if we have received the 504 message.
-	if((P4IN & (CAN_INTn1)) == 0x00) {
-		can_receive_MAIN();
-
-		if(can_MAIN.status == CAN_OK) {
-			switch(can_MAIN.address) {
-			/** @todo Figure out where to find the enable bit here. */
-				case DC_CAN_BASE + DC_SWITCH:
-					dc_504_flag = true;
-					break;
-				default:
-					// Do nothing because we don't know what the message is.
-					break;
-			}
-		} else if(can_MAIN.status == CAN_RTR) {
-			can_MAIN.address = AC_CAN_MAIN_BASE + AC_IDLE_RTR; // Send out battery stats since we're still idling
-												 	 	 	   // and no coulomb count has occurred.
-			can_MAIN.data.data_u16[0] = batteryV[MPPT_ZERO];
-			can_MAIN.data.data_u16[1] = 0;
-			can_MAIN.data.data_u16[2] = 0;
-			can_MAIN.data.data_u16[3] = 0; // No use for this yet.
-			can_transmit_MAIN();
-		} else {
-			error_flag = true;
-		}
-	}
+//	if((P4IN & (CAN_INTn1)) == 0x00) {
+//		can_receive_MAIN();
+//
+//		if(can_MAIN.status == CAN_OK) {
+//			switch(can_MAIN.address) {
+//			/** @todo Figure out where to find the enable bit here. */
+//				case DC_CAN_BASE + DC_SWITCH:
+//					dc_504_flag = true;
+//					break;
+//				default:
+//					// Do nothing because we don't know what the message is.
+//					break;
+//			}
+//		} else if(can_MAIN.status == CAN_RTR) {
+//			can_MAIN.address = AC_CAN_MAIN_BASE + AC_IDLE_RTR; // Send out battery stats since we're still idling
+//												 	 	 	   // and no coulomb count has occurred.
+//			can_MAIN.data.data_u16[0] = batteryV[MPPT_ZERO];
+//			can_MAIN.data.data_u16[1] = 0;
+//			can_MAIN.data.data_u16[2] = 0;
+//			can_MAIN.data.data_u16[3] = 0; // No use for this yet.
+//			can_transmit_MAIN();
+//		} else {
+//			error_flag = true;
+//		}
+//	}
 
 	// dc_504_flag should get set in the Main CAN controller interrupt.
 	if(error_flag == false && dc_504_flag == true) {
