@@ -304,8 +304,8 @@ static void IdleController(void) {
 					break;
 			}
 		} else if(can_MAIN.status == CAN_RTR) {
-			can_MAIN.address = AC_CAN_MAIN_BASE; // Send out battery stats since we're still idling
-												 // and no coulomb count has occurred.
+			can_MAIN.address = AC_CAN_MAIN_BASE + AC_IDLE_RTR; // Send out battery stats since we're still idling
+												 	 	 	   // and no coulomb count has occurred.
 			can_MAIN.data.data_u16[0] = batteryV[MPPT_ZERO];
 			can_MAIN.data.data_u16[1] = batteryV[MPPT_ONE];
 			can_MAIN.data.data_u16[2] = batteryV[MPPT_TWO];
