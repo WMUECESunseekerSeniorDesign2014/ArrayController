@@ -166,7 +166,7 @@ static void InitController(void) {
 	/* MPPT CAN Initialization */
 	can_init_MPPT();
 	Delay(DELAY_HALFSEC); // Give the MPPTs time to initialize themselves.
-	for(i = 0; i <= MPPT_TWO; i++) { ToggleMPPT(i, OFF); } // Disable MPPTs initially.
+	//for(i = 0; i <= MPPT_TWO; i++) { ToggleMPPT(i, OFF); } // Disable MPPTs initially.
 	P4OUT &= ~LED5; // 0 1 0 1
 
 	/* Initialize RS-232 */
@@ -212,6 +212,9 @@ static void IdleController(void) {
 	bool error_flag = false;
 
 	P4OUT &= ~(LED5); // 0 0 0 1
+
+	/** @todo Write code to loop and wait for the MPPTs to be turned on. */
+
 	// Loop and get data from MPPT.
 	for(i = 0; i <= MPPT_ZERO; i++) {
 		// If the previous call to GetMPPTData() resulted in an error, roll back i.
