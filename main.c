@@ -35,29 +35,29 @@ bool AC2PC_RX_flag = FALSE;
 /*Global Variables*/
 volatile unsigned char adc_stat[8] = { 0 };
 volatile signed long adc_voltage[8] = { 0 };
-volatile unsigned int batteryV[3] = { 0 };
-volatile unsigned int arrayV[3] = { 0 };
-volatile unsigned int arrayI[3] = { 0 };
-volatile unsigned int arrayT[3] = { 0 };
+unsigned int batteryV[3] = { 0 };
+unsigned int arrayV[3] = { 0 };
+unsigned int arrayI[3] = { 0 };
+unsigned int arrayT[3] = { 0 };
 
 volatile unsigned char int_op_flag = 0x00;
 volatile unsigned char adc_rdy_flag = 0x00;
 volatile unsigned char dr_switch_flag = 0x00;
-bool int_enable_flag = FALSE;
-bool dc_504_flag = FALSE;
-bool coulomb_count_flag = FALSE;
-bool coulomb_data_dump_flag = FALSE;
-bool mppt_data_dump_flag = FALSE;
-bool thermistor_data_dump_flag = FALSE;
-bool error_blink_flag = FALSE;
-bool mppt_rtr_flag = FALSE;
+volatile bool int_enable_flag = FALSE;
+volatile bool dc_504_flag = FALSE;
+volatile bool coulomb_count_flag = FALSE;
+volatile bool coulomb_data_dump_flag = FALSE;
+volatile bool mppt_data_dump_flag = FALSE;
+volatile bool thermistor_data_dump_flag = FALSE;
+volatile bool error_blink_flag = FALSE;
+volatile bool mppt_rtr_flag = FALSE;
 
 char mppt_status = 0; // Bits 0-2 indicate if the MPPT is enabled or disabled.
 char mppt_control = 0x0F; // Bits 0-2 indicate if we are intelligently controlling the MPPTs.
 
 // Every time timA_cnt hits 512, timA_total_cnt needs to be incremented.
-short timA_cnt = 0;
-unsigned long timA_total_cnt = 0;
+volatile short timA_cnt = 0;
+volatile unsigned long timA_total_cnt = 0;
 
 signed long tempOne, tempTwo, tempThree, refTemp, adcRef, internal12V;
 
