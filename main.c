@@ -290,10 +290,10 @@ static void GeneralOperation(void) {
 
 	// Enable/disable MPPTs based on driver switch status.
 	// The first MPPT.
-	if(((dr_switch_flag & 0x08) > 0) && (mppt_status & 0x01) == 0) { // Switch is on.
+	if(((dr_switch_flag & 0x01) > 0) && (mppt_status & 0x01) == 0) { // Switch is on.
 		mppt_control |= ~(0xFE);
 		ToggleMPPT(MPPT_ZERO, true);
-	} else if(((dr_switch_flag & 0x08) == 0) && (mppt_status & 0x01) > 0) {
+	} else if(((dr_switch_flag & 0x01) == 0) && (mppt_status & 0x01) > 0) {
 		// The driver has ultimate control over turning off the MPPT.
 		ToggleMPPT(MPPT_ZERO, false);
 		mppt_control &= 0xFE;
@@ -997,6 +997,7 @@ __interrupt void P2_ISR(void)
 
 	 if(timA_cnt == TIMA_ONE_SEC + 1) { // If timA_cnt is equal to 513, roll over.
 		 timA_cnt = 1;
+		 P1OUT ^= LED0;
 		 coulomb_data_dump_flag = true;
 		 thermistor_data_dump_flag = true;
 
@@ -1004,10 +1005,10 @@ __interrupt void P2_ISR(void)
 			 mppt_rtr_flag = true;
 		 }
 
-		 if(error_blink_flag == true) {
+		 if(error_blink_flag) {
 			 P1OUT ^= ~LED1; // Blink the LED.
 		 } else {
-			 P1OUT |= LED1; // Disable the LED.
+			 P1OUT &= ~LED1; // Disable the LED.
 		 }
 
 		 if(carState == RUNNING) {
@@ -1033,6 +1034,6 @@ __interrupt void P2_ISR(void)
  #pragma vector = TIMERB0_VECTOR
  __interrupt void timer_b0(void)
  {
-	 P1OUT ^= LED1;
+	 //P1OUT ^= LED1;
  }
 
