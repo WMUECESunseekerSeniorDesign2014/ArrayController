@@ -336,7 +336,7 @@ static void IdleController(void) {
  *  * Calculate the state-of-charge (coulomb count).
  *  * Dump telemetry data out to the CAN bus.
  *  * Poll the driver switches to see if the driver is requesting that the MPPTs turn off.
- *  * Poll the thermistors and, if needed, send an emergency CAN message.
+ *  * Poll the thermistors and send their values on the CAN bus.
  */
 static void GeneralOperation(void) {
 	unsigned int battPercentage = 0;
