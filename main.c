@@ -257,6 +257,8 @@ static void IdleController(void) {
 		mppt_status &= 0x00;
 
 		dc_504_flag = true; /** @note We need to move this out when we check 504 message. */
+	} else {
+		error_flag = true;
 	}
 
 	// dc_504_flag should get set in the Main CAN controller interrupt.
@@ -1006,7 +1008,7 @@ __interrupt void P2_ISR(void)
 		 }
 
 		 if(error_blink_flag) {
-			 P1OUT ^= ~LED1; // Blink the LED.
+			 P1OUT ^= LED1; // Blink the LED.
 		 } else {
 			 P1OUT &= ~LED1; // Disable the LED.
 		 }
