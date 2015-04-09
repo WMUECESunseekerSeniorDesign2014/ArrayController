@@ -210,34 +210,36 @@ static void IdleController(void) {
 	bool error_flag = false;
 
 	P4OUT &= ~(LED5); // 0 0 0 1
-	// Loop and get data from MPPT.
-	for(i = 0; i <= MPPT_ZERO; i++) {
-		// If the previous call to GetMPPTData() resulted in an error, roll back i.
-		if(status == 0) {
-			i = (i <= 1) ? 0 : (i - 1);
-			ToggleError(true);
-		} else { // If the RTR was successful, store the data.
-			// Change the data from mV to V for simple comparisons.
-			arrV[i] = can_MPPT.data.data_u16[0] / MPPT_AV_SCALE;
-			battV[i] = can_MPPT.data.data_u16[2] / MPPT_BV_SCALE;
+	if((mppt_status & 0x01) > 0) {
+		// Loop and get data from MPPT.
+		for(i = 0; i <= MPPT_ZERO; i++) {
+			// If the previous call to GetMPPTData() resulted in an error, roll back i.
+			if(status == 0) {
+				i = (i <= 1) ? 0 : (i - 1);
+				ToggleError(true);
+			} else if (status == 1) { // If the RTR was successful, store the data.
+				// Change the data from mV to V for simple comparisons.
+				arrV[i] = can_MPPT.data.data_u16[0] / MPPT_AV_SCALE;
+				battV[i] = can_MPPT.data.data_u16[2] / MPPT_BV_SCALE;
 
-			arrayV[i] = can_MPPT.data.data_u16[0];
-			arrayI[i] = can_MPPT.data.data_u16[1];
-			batteryV[i] = can_MPPT.data.data_u16[2];
-			arrayT[i] = can_MPPT.data.data_u16[3];
+				arrayV[i] = can_MPPT.data.data_u16[0];
+				arrayI[i] = can_MPPT.data.data_u16[1];
+				batteryV[i] = can_MPPT.data.data_u16[2];
+				arrayT[i] = can_MPPT.data.data_u16[3];
 
-			ToggleError(false);
+				ToggleError(false);
+			}
+
+			status = GetMPPTData(i);
 		}
-
-		status = GetMPPTData(i);
 	}
 
-	while((mppt_status & 0x01) > 0) {
+	if((mppt_status & 0x01) > 0) {
 		//Delay(DELAY_HALFSEC); // Give the MPPTs time to initialize themselves.
 		for(i = 0; i <= MPPT_ZERO; i++) { ToggleMPPT(i, OFF); } // Disable MPPTs.
 	}
 
-	dc_504_flag == TRUE;
+	dc_504_flag = true;
 
 	/** @note Removed safety checks as they're not usable in the system testing apparatus. */
 
@@ -528,6 +530,7 @@ static void ToggleMPPT(unsigned int mppt, FunctionalState state) {
 	can_MPPT.data.data_u16[3] = 0x0000; // to base address 0x600
 	can_MPPT.data.data_u16[2] = 0x0000;
 	can_MPPT.data.data_u16[1] = 0x0000;
+
 
 	// Only transmit if needed to prevent hanging up the microcontroller with sending an
 	// unnecessary CAN message. This was broken into multiple IF statements for readability.
