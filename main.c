@@ -13,7 +13,6 @@ static int GetMPPTData(unsigned int mppt);
 static void ToggleError(bool toggle);
 static void CoulombCount(void);
 static void ReportCoulombCount(void);
-static int ConvertADCVal(ADCState state);
 /**@}*/
 
 CarState carState = INIT; // The state that the car is in.
@@ -60,11 +59,12 @@ short timA_cnt = 0;
 unsigned long timA_total_cnt = 0;
 
 signed long tempOne, tempTwo, tempThree, refTemp, adcRef, internal12V;
-unsigned long coulombCnt = 0;
-unsigned long shuntCurrent = 0;
+
+signed long shuntReading = 0;
+signed long intShunt = 0;
+signed long intShuntSum = 0;
+
 unsigned int battVoltage = 0;
-unsigned long power = 0;
-unsigned long powerAvg = 0;
 
 int i;
 
@@ -214,12 +214,13 @@ static void IdleController(void) {
 	char buffer[80];
 	bool error_flag = FALSE;
 
+	P4OUT &= ~(LED5); // 0 0 0 1
 	// Loop and get data from MPPT.
-	/** @todo Indicate the user that we're stuck here. */
 	for(i = 0; i <= MPPT_TWO; i++) {
 		// If the previous call to GetMPPTData() resulted in an error, roll back i.
 		if(status == 0) {
 			i = (i <= 1) ? 0 : (i - 1);
+			ToggleError(TRUE);
 		} else { // If the RTR was successful, store the data.
 			// Change the data from mV to V for simple comparisons.
 			arrV[i] = can_MPPT.data.data_u16[0] / MPPT_AV_SCALE;
@@ -229,6 +230,8 @@ static void IdleController(void) {
 			arrayI[i] = can_MPPT.data.data_u16[1];
 			batteryV[i] = can_MPPT.data.data_u16[2];
 			arrayT[i] = can_MPPT.data.data_u16[3];
+
+			ToggleError(FALSE);
 		}
 
 		status = GetMPPTData(i);
@@ -321,6 +324,7 @@ static void IdleController(void) {
 		timA_cnt = 0;
 		timA_total_cnt = 0;
 		battVoltage = battV[0]; // All battery voltages should be about the same.
+		P4OUT |= (LED5); // Turn off the LED.
 	}
 
 	ToggleError(error_flag);
@@ -516,38 +520,9 @@ static void GeneralOperation(void) {
  * 		 switch to CHARGING.
  */
 static void ChargeOnly(void) {
-	signed int battPercentage = 0;
-
 	if(coulomb_count_flag == TRUE) {
 		CoulombCount();
 		coulomb_count_flag = FALSE;
-	}
-
-	if(coulomb_data_dump_flag == TRUE) {
-		// Calculate the percentage of deliverable power left in the batteries. powerAvg is divided by 3600
-		// to convert it from watt-seconds to watt-hours.
-		battPercentage = ((BATT_MAX_WATTH - (powerAvg / 3600)) / BATT_MAX_WATTH) * 100; // Convert to a percentage.
-
-		// Enable/disable the MPPTs based on the percentage that was calculated.
-		if(battPercentage <= BATT_HIGH_LOWER) {
-			ToggleMPPT(MPPT_ZERO, ON);
-		} else if(battPercentage >= BATT_HIGH_UPPER) {
-			ToggleMPPT(MPPT_ZERO, OFF);
-		}
-
-		if(battPercentage <= BATT_MEDI) {
-			ToggleMPPT(MPPT_ONE, ON);
-		} else {
-			ToggleMPPT(MPPT_ONE, OFF);
-		}
-
-		if(battPercentage <= BATT_LOW) {
-			ToggleMPPT(MPPT_TWO, ON);
-		} else {
-			ToggleMPPT(MPPT_TWO, OFF);
-		}
-
-		ReportCoulombCount();
 	}
 }
 
@@ -640,58 +615,45 @@ static int GetMPPTData(unsigned int mppt) {
  *  1. Reads the shunt voltage.
  *  2. Reads the bias voltage.
  *  3. Subtracts the bias from the shunt voltage.
- *  4. Converts the value from (3) into a voltage.
- *  5. Converts the value (4) into a current and stores it in a global.
- *  5. Computes the time average current and stores it in another global.
- *
- *  @todo Create a intShunt to hold the adc_in(shunt) - adc_in(shunt_bias).
- *  @todo Keep a raw running sum of intShunt.
- *  @todo Perform filtering on intShunt (different than previous todo).
- *  @todo Do the conversions from voltage to current when the CAN message is sent (using floats).
+ *  4. Uses the value in a Infinite Impulse Response Filter
+ *  5. Stores the raw sum in another variable.
  */
 void CoulombCount(void) {
-	float shuntVal = 0;
-
-	// Convert the value read from the shunt back into a voltage.
-	shuntVal = ((adc_in((char)SHUNT) - adc_in((char)SHUNT_BIAS)) * ADC_REF) / ADC_RESO;
-
-	// These are ints!
-	shuntCurrent = shuntVal / SHUNT_OHM; // Get the current.
-	coulombCnt += (shuntCurrent - coulombCnt) >> C_CNT_SHIFT;
+	shuntReading = adc_in((char)SHUNT) - adc_in((char)SHUNT_BIAS);
+	intShunt += (intShunt - newShuntReading) >> C_CNT_SHIFT; // This is the IIR filter of (4).
+	intShuntSum += intShunt; // This is (5).
 }
 
 /**
  * Report the results of the coulomb count to the CAN bus.
  */
 void ReportCoulombCount(void) {
-	power = battVoltage * shuntCurrent;
-	powerAvg = battVoltage * coulombCnt;
+	float sendCurrent, sendCurrentAvg, sendPower, sendPowerAvg;
+
+	// Convert the stored values from the ADC into voltages then use that to get currents.
+	sendCurrent = (((shuntReading * ADC_REF) / ADC_RESO) / SHUNT_OHM);
+	sendCurrentAvg = (((intShunt * ADC_REF) / ADC_RESO) / SHUNT_OHM);
+
+	sendPower = battVoltage * sendCurrent;
+	sendPowerAvg = battVoltage * sendCurrentAvg;
 
 	// Transmit MPPT status.
+	/** @todo What else can I put in this message? */
 	can_MAIN.address = AC_CAN_MAIN_BASE + AC_MPPT_STATUS;
 	can_MAIN.data.data_u8[0] = mppt_status;
 	can_transmit_MAIN();
 
 	// Transmit currents.
 	can_MAIN.address = AC_CAN_MAIN_BASE + AC_CURRENT;
-	can_MAIN.data.data_u32[0] = shuntCurrent;
-	can_MAIN.data.data_u32[1] = coulombCnt;
+	can_MAIN.data.data_u32[0] = sendCurrent;
+	can_MAIN.data.data_u32[1] = sendCurrentAvg;
 	can_transmit_MAIN();
 
 	// Transmit powers.
 	can_MAIN.address = AC_CAN_MAIN_BASE + AC_POWER;
-	can_MAIN.data.data_u32[0] = power;
-	can_MAIN.data.data_u32[1] = powerAvg;
+	can_MAIN.data.data_u32[0] = sendPower;
+	can_MAIN.data.data_u32[1] = sendPowerAvg;
 	can_transmit_MAIN();
-}
-
-/**
- * Converts a ratiometric value from the ADC into a voltage.
- */
-int ConvertADCVal(ADCState state) {
-	signed long adcVal = adc_in((char)state);
-
-	return (int)((adcVal * ADC_REF) / ADC_RESO);
 }
 
 /**
