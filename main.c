@@ -63,15 +63,11 @@ signed long tempOne, tempTwo, tempThree, refTemp, adcRef, internal12V;
 signed long shuntReading = 0;
 signed long intShunt = 0;
 signed long intShuntSum = 0;
+float powerAvg = 0;
 
 unsigned int battVoltage = 0;
 
 int i;
-
-
-/**
- * @todo Add testing code for system testing tomorrow. We need to be able to ignore the 504 message, read from one MPPT, etc.
- */
 
 /*
  * main.c
@@ -466,27 +462,27 @@ static void GeneralOperation(void) {
 	// Staggered conversions of ADC values.
 	switch(adcState) {
 		case AIN0:
-			tempOne = ConvertADCVal(adcState);
+			tempOne = adc_in((char)adcState);
 			adcState = AIN1;
 			break;
 		case AIN1:
-			tempTwo = ConvertADCVal(adcState);
+			tempTwo = adc_in((char)adcState);
 			adcState = AIN2;
 			break;
 		case AIN2:
-			tempThree = ConvertADCVal(adcState);
+			tempThree = adc_in((char)adcState);
 			adcState = AIN3;
 			break;
 		case AIN3:
-			refTemp = ConvertADCVal(adcState);
+			refTemp = adc_in((char)adcState);
 			adcState = REF;
 			break;
 		case REF:
-			adcRef = ConvertADCVal(adcState);
+			adcRef = adc_in((char)adcState);
 			adcState = INT12V;
 			break;
 		case INT12V:
-			internal12V = ConvertADCVal(adcState);
+			internal12V = adc_in((char)adcState);
 			adcState = AIN0;
 			break;
 	}
@@ -618,7 +614,7 @@ static int GetMPPTData(unsigned int mppt) {
  */
 void CoulombCount(void) {
 	shuntReading = adc_in((char)SHUNT) - adc_in((char)SHUNT_BIAS);
-	intShunt += (intShunt - newShuntReading) >> C_CNT_SHIFT; // This is the IIR filter of (4).
+	intShunt += (intShunt - shuntReading) >> C_CNT_SHIFT; // This is the IIR filter of (4).
 	intShuntSum += intShunt; // This is (5).
 }
 
@@ -626,14 +622,14 @@ void CoulombCount(void) {
  * Report the results of the coulomb count to the CAN bus.
  */
 void ReportCoulombCount(void) {
-	float sendCurrent, sendCurrentAvg, sendPower, sendPowerAvg;
+	float sendCurrent, sendCurrentAvg, sendPower;
 
 	// Convert the stored values from the ADC into voltages then use that to get currents.
 	sendCurrent = (((shuntReading * ADC_REF) / ADC_RESO) / SHUNT_OHM);
 	sendCurrentAvg = (((intShunt * ADC_REF) / ADC_RESO) / SHUNT_OHM);
 
 	sendPower = battVoltage * sendCurrent;
-	sendPowerAvg = battVoltage * sendCurrentAvg;
+	powerAvg = battVoltage * sendCurrentAvg;
 
 	// Transmit MPPT status.
 	/** @todo What else can I put in this message? */
@@ -650,7 +646,7 @@ void ReportCoulombCount(void) {
 	// Transmit powers.
 	can_MAIN.address = AC_CAN_MAIN_BASE + AC_POWER;
 	can_MAIN.data.data_u32[0] = sendPower;
-	can_MAIN.data.data_u32[1] = sendPowerAvg;
+	can_MAIN.data.data_u32[1] = powerAvg;
 	can_transmit_MAIN();
 }
 
@@ -839,23 +835,23 @@ void AC2PC_Interpret(void) {
 			put_status_PC = TRUE;
 			break;
 		case PROMPT_BATT_DUMP:
-			sprintf(tx_PC_buffer, "V1: %d, V2: %d, V3: %d", batteryV[MPPT_ZERO], batteryV[MPPT_ONE], batteryV[MPPT_TWO]);
+			sprintf(tx_PC_buffer, "%d,%d,%d", batteryV[MPPT_ZERO], batteryV[MPPT_ONE], batteryV[MPPT_TWO]);
 			break;
 		case PROMPT_SHUNT_DUMP:
-			sprintf(tx_PC_buffer, "I: %d, AvgI: %d, P: %d, AvgP: %d\r\n", shuntCurrent, coulombCnt, power, powerAvg);
+			sprintf(tx_PC_buffer, "%d,%d,%d,%f\r\n", shuntReading, intShunt, intShuntSum, powerAvg);
 			break;
 		case PROMPT_MPPT_DUMP:
-			sprintf(tx_PC_buffer, "V1: %d, V2: %d, V3: %d, I1: %d, I2: %d, I3: %d", arrayV[MPPT_ZERO], arrayV[MPPT_ONE], arrayV[MPPT_TWO],
+			sprintf(tx_PC_buffer, "%d,%d,%d,%d,%d,%d", arrayV[MPPT_ZERO], arrayV[MPPT_ONE], arrayV[MPPT_TWO],
 					arrayI[MPPT_ZERO], arrayI[MPPT_ONE], arrayI[MPPT_TWO]);
 			break;
 		case PROMPT_THERM_DUMP:
-			sprintf(tx_PC_buffer, "T1: %lX, T2: %lX, T3: %lX, R: %lX\r\n", tempOne, tempTwo, tempThree, refTemp);
+			sprintf(tx_PC_buffer, "%lX,%lX,%lX,%lX\r\n", tempOne, tempTwo, tempThree, refTemp);
 			break;
 		case PROMPT_MPPT_STATUS_DUMP:
-			sprintf(tx_PC_buffer, "MPPT: %X\r\n", mppt_status);
+			sprintf(tx_PC_buffer, "%X\r\n", mppt_status);
 			break;
 		case PROMPT_SELF_CHECK:
-			sprintf(tx_PC_buffer, "12V: %lX, REF: %lX", internal12V, adcRef);
+			sprintf(tx_PC_buffer, "%lX,%lX", internal12V, adcRef);
 			break;
 		default:
 			// Do nothing.
