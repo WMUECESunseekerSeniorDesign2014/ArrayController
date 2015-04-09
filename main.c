@@ -328,22 +328,6 @@ static void GeneralOperation(void) {
 		mppt_control &= 0xFE;
 	}
 
-	// The second MPPT.
-	if((dr_switch_flag & 0x01) > 0) { // Switch is on.
-		mppt_control &= ~(0xFD);
-	} else {
-		ToggleMPPT(MPPT_ONE, OFF);
-		mppt_control &= 0xFD;
-	}
-
-	// The third MPPT.
-	if((dr_switch_flag & 0x04) > 0) { // Switch is on.
-		mppt_control &= ~(0xFB);
-	} else {
-		ToggleMPPT(MPPT_TWO, OFF);
-		mppt_control &= 0xFB;
-	}
-
 	// TIMA has gone off.
 	if(coulomb_count_flag == true) {
 		CoulombCount();
@@ -395,40 +379,6 @@ static void GeneralOperation(void) {
 					can_MAIN.data.data_u16[1] = arrayI[MPPT_ZERO];
 					can_MAIN.data.data_u16[2] = batteryV[MPPT_ZERO];
 					can_MAIN.data.data_u16[3] = arrayT[MPPT_ZERO];
-					can_transmit_MAIN();
-
-					canMpptState = MPPT1;
-				}
-				break;
-			case MPPT1:
-				if(GetMPPTData(MPPT_ONE) == 1) {
-					arrayV[MPPT_ONE] = can_MPPT.data.data_u16[0];
-					arrayI[MPPT_ONE] = can_MPPT.data.data_u16[1];
-					batteryV[MPPT_ONE] = can_MPPT.data.data_u16[2];
-					arrayT[MPPT_ONE] = can_MPPT.data.data_u16[3];
-
-					can_MAIN.address = AC_CAN_MAIN_BASE + AC_MPPT_ONE;
-					can_MAIN.data.data_u16[0] = arrayV[MPPT_ONE];
-					can_MAIN.data.data_u16[1] = arrayI[MPPT_ONE];
-					can_MAIN.data.data_u16[2] = batteryV[MPPT_ONE];
-					can_MAIN.data.data_u16[3] = arrayT[MPPT_ONE];
-					can_transmit_MAIN();
-
-					canMpptState = MPPT2;
-				}
-				break;
-			case MPPT2:
-				if(GetMPPTData(MPPT_TWO) == 1) {
-					arrayV[MPPT_TWO] = can_MPPT.data.data_u16[0];
-					arrayI[MPPT_TWO] = can_MPPT.data.data_u16[1];
-					batteryV[MPPT_TWO] = can_MPPT.data.data_u16[2];
-					arrayT[MPPT_TWO] = can_MPPT.data.data_u16[3];
-
-					can_MAIN.address = AC_CAN_MAIN_BASE + AC_MPPT_TWO;
-					can_MAIN.data.data_u16[0] = arrayV[MPPT_TWO];
-					can_MAIN.data.data_u16[1] = arrayI[MPPT_TWO];
-					can_MAIN.data.data_u16[2] = batteryV[MPPT_TWO];
-					can_MAIN.data.data_u16[3] = arrayT[MPPT_TWO];
 					can_transmit_MAIN();
 
 					canMpptState = MPPT0;
@@ -539,20 +489,6 @@ static void RTRRespond(void) {
 			can_MAIN.data.data_u16[1] = arrayI[MPPT_ZERO];
 			can_MAIN.data.data_u16[2] = batteryV[MPPT_ZERO];
 			can_MAIN.data.data_u16[3] = arrayT[MPPT_ZERO];
-			break;
-		case AC_CAN_MAIN_BASE + AC_MPPT_ONE:
-			can_MAIN.address = AC_CAN_MAIN_BASE + AC_MPPT_ONE;
-			can_MAIN.data.data_u16[0] = arrayV[MPPT_ONE];
-			can_MAIN.data.data_u16[1] = arrayI[MPPT_ONE];
-			can_MAIN.data.data_u16[2] = batteryV[MPPT_ONE];
-			can_MAIN.data.data_u16[3] = arrayT[MPPT_ONE];
-			break;
-		case AC_CAN_MAIN_BASE + AC_MPPT_TWO:
-			can_MAIN.address = AC_CAN_MAIN_BASE + AC_MPPT_TWO;
-			can_MAIN.data.data_u16[0] = arrayV[MPPT_TWO];
-			can_MAIN.data.data_u16[1] = arrayI[MPPT_TWO];
-			can_MAIN.data.data_u16[2] = batteryV[MPPT_TWO];
-			can_MAIN.data.data_u16[3] = arrayT[MPPT_TWO];
 			break;
 		case AC_CAN_MAIN_BASE + AC_THERM_ONE:
 			can_MAIN.address = AC_CAN_MAIN_BASE + AC_THERM_ONE;
