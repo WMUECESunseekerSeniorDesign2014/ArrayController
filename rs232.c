@@ -74,12 +74,12 @@ void AC2PC_put_int(void)
 	if (ch == '\0')
 	{
 		UCA0IE &= ~UCTXIE;
-		put_status_PC = FALSE;
+		put_status_PC = false;
 	}
 	else
 	{
 		UCA0TXBUF = ch;
 		UCA0IE |= UCTXIE;
-		put_status_PC = TRUE;
+		put_status_PC = true;
 	}
 }

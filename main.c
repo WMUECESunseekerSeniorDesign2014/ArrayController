@@ -28,8 +28,8 @@ char tx_PC_buffer[60];
 char rx_PC_buffer[60];
 char *putPC_ptr, *getPC_ptr;
 bool put_status_PC, get_status_PC;
-bool Prompt_Active = FALSE;
-bool AC2PC_RX_flag = FALSE;
+bool Prompt_Active = false;
+bool AC2PC_RX_flag = false;
 /**@}*/
 
 /*Global Variables*/
@@ -43,14 +43,14 @@ unsigned int arrayT[3] = { 0 };
 volatile unsigned char int_op_flag = 0x00;
 volatile unsigned char adc_rdy_flag = 0x00;
 volatile unsigned char dr_switch_flag = 0x00;
-volatile bool int_enable_flag = FALSE;
-volatile bool dc_504_flag = FALSE;
-volatile bool coulomb_count_flag = FALSE;
-volatile bool coulomb_data_dump_flag = FALSE;
-volatile bool mppt_data_dump_flag = FALSE;
-volatile bool thermistor_data_dump_flag = FALSE;
-volatile bool error_blink_flag = FALSE;
-volatile bool mppt_rtr_flag = FALSE;
+volatile bool int_enable_flag = false;
+volatile bool dc_504_flag = false;
+volatile bool coulomb_count_flag = false;
+volatile bool coulomb_data_dump_flag = false;
+volatile bool mppt_data_dump_flag = false;
+volatile bool thermistor_data_dump_flag = false;
+volatile bool error_blink_flag = false;
+volatile bool mppt_rtr_flag = false;
 
 char mppt_status = 0; // Bits 0-2 indicate if the MPPT is enabled or disabled.
 char mppt_control = 0x0F; // Bits 0-2 indicate if we are intelligently controlling the MPPTs.
@@ -87,9 +87,9 @@ int main(void) {
     		break;
 
     	case IDLE:
-    		if(int_enable_flag == FALSE) {
+    		if(int_enable_flag == false) {
 				_EINT(); // Enable interrupts
-				int_enable_flag = TRUE;
+				int_enable_flag = true;
 			}
 			P4OUT &= ~(LED4 | LED5); // Turn on two LEDs to show we're idling.
 			IdleController();
@@ -141,7 +141,7 @@ static void InitController(void) {
 	timerA_init();
 	timerB_init();
 	// Turn off the error light.
-	ToggleError(FALSE);
+	ToggleError(false);
 	P4OUT |= LED2 | LED3 | LED4 | LED5; // Turn all of the LEDs off.
 	P4OUT &= ~(LED5); // 0 0 0 1
 
@@ -170,9 +170,9 @@ static void InitController(void) {
 	P4OUT &= ~LED5; // 0 1 0 1
 
 	/* Initialize RS-232 */
-	// No interrupt has come through yet, so mark this to FALSE initially.
-	put_status_PC = FALSE;
-	Prompt_Active = FALSE;
+	// No interrupt has come through yet, so mark this to false initially.
+	put_status_PC = false;
+	Prompt_Active = false;
 	AC2PC_init();
 	UCA0IE |= UCRXIE; // Enable interrupts on the RX line.
 	P4OUT &= ~(LED3 | LED4); // 0 1 1 0
@@ -201,7 +201,7 @@ static void InitController(void) {
  *     LED1 and dumping data to the RS-232 port.
  *
  * If either (1) or (3) occur and a 504 message is received, the Array Controller will acknowledge the
- * 504 message by setting dc_504_flag = TRUE but it will not move to the next state.
+ * 504 message by setting dc_504_flag = true but it will not move to the next state.
  */
 static void IdleController(void) {
 	int i;
@@ -209,7 +209,7 @@ static void IdleController(void) {
 	unsigned int arrV[3];
 	unsigned int battV[3];
 	char buffer[80];
-	bool error_flag = FALSE;
+	bool error_flag = false;
 
 	P4OUT &= ~(LED5); // 0 0 0 1
 	// Loop and get data from MPPT.
@@ -217,7 +217,7 @@ static void IdleController(void) {
 		// If the previous call to GetMPPTData() resulted in an error, roll back i.
 		if(status == 0) {
 			i = (i <= 1) ? 0 : (i - 1);
-			ToggleError(TRUE);
+			ToggleError(true);
 		} else { // If the RTR was successful, store the data.
 			// Change the data from mV to V for simple comparisons.
 			arrV[i] = can_MPPT.data.data_u16[0] / MPPT_AV_SCALE;
@@ -228,7 +228,7 @@ static void IdleController(void) {
 			batteryV[i] = can_MPPT.data.data_u16[2];
 			arrayT[i] = can_MPPT.data.data_u16[3];
 
-			ToggleError(FALSE);
+			ToggleError(false);
 		}
 
 		status = GetMPPTData(i);
@@ -241,7 +241,7 @@ static void IdleController(void) {
 	// is not needed.
 	if((battV[MPPT_ZERO] != battV[MPPT_ONE]) || (battV[MPPT_ONE] != battV[MPPT_TWO])) {
 		// Dump data via RS-232 and CAN every second.
-		if(coulomb_data_dump_flag == TRUE) {
+		if(coulomb_data_dump_flag == true) {
 			AC2PC_puts("BLOWN FUSE\r\n");
 			sprintf(buffer, "%d,%d,%d\r\n", battV[MPPT_ZERO], battV[MPPT_ONE], battV[MPPT_TWO]);
 			AC2PC_puts(buffer);
@@ -253,8 +253,8 @@ static void IdleController(void) {
 			can_MAIN.data.data_u16[3] = 0; // No use for this yet.
 			can_transmit_MAIN();
 
-			error_flag = TRUE;
-			coulomb_data_dump_flag = FALSE;
+			error_flag = true;
+			coulomb_data_dump_flag = false;
 		}
 	}
 
@@ -266,7 +266,7 @@ static void IdleController(void) {
 		if(battV[MPPT_ONE] == battV[MPPT_TWO]) {
 			if((battV[MPPT_ZERO] >= BATT_MAX_LOWER_V) && (battV[MPPT_ZERO] <= BATT_MAX_UPPER_V)) {
 				// Dump data via RS-232 and CAN every second.
-				if(coulomb_data_dump_flag == TRUE) {
+				if(coulomb_data_dump_flag == true) {
 					AC2PC_puts("ARRAY UNCONNECTED\r\n");
 					sprintf(buffer, "%d,%d,%d\r\n", battV[MPPT_ZERO], battV[MPPT_ONE], battV[MPPT_TWO]);
 					AC2PC_puts(buffer);
@@ -278,8 +278,8 @@ static void IdleController(void) {
 					can_MAIN.data.data_u16[3] = 0; // No use for this yet.
 					can_transmit_MAIN();
 
-					error_flag = TRUE;
-					coulomb_data_dump_flag = FALSE;
+					error_flag = true;
+					coulomb_data_dump_flag = false;
 				}
 			}
 		}
@@ -294,7 +294,7 @@ static void IdleController(void) {
 			switch(can_MAIN.address) {
 			/** @todo Figure out where to find the enable bit here. */
 				case DC_CAN_BASE + DC_SWITCH:
-					dc_504_flag = TRUE;
+					dc_504_flag = true;
 					break;
 				default:
 					// Do nothing because we don't know what the message is.
@@ -309,12 +309,12 @@ static void IdleController(void) {
 			can_MAIN.data.data_u16[3] = 0; // No use for this yet.
 			can_transmit_MAIN();
 		} else {
-			error_flag = TRUE;
+			error_flag = true;
 		}
 	}
 
 	// dc_504_flag should get set in the Main CAN controller interrupt.
-	if(error_flag == FALSE && dc_504_flag == TRUE) {
+	if(error_flag == false && dc_504_flag == true) {
 		carState = RUNNING;
 		P4OUT |= (LED4 | LED5);
 		// Reset the counters for the next state.
@@ -368,15 +368,15 @@ static void GeneralOperation(void) {
 	}
 
 	// TIMA has gone off.
-	if(coulomb_count_flag == TRUE) {
+	if(coulomb_count_flag == true) {
 		CoulombCount();
-		coulomb_count_flag = FALSE;
+		coulomb_count_flag = false;
 	}
 
 	// One second has passed.
-	if(coulomb_data_dump_flag == TRUE) {
+	if(coulomb_data_dump_flag == true) {
 		ReportCoulombCount();
-		coulomb_data_dump_flag = FALSE;
+		coulomb_data_dump_flag = false;
 
 		// Calculate the percentage of deliverable power left in the batteries. powerAvg is divided by 3600
 		// to convert it from watt-seconds to watt-hours.
@@ -404,7 +404,7 @@ static void GeneralOperation(void) {
 	}
 
 	// Dump MPPT data out on the main CAN bus.
-	if(mppt_data_dump_flag == TRUE) {
+	if(mppt_data_dump_flag == true) {
 		switch(canMpptState) {
 			case MPPT0:
 				if(GetMPPTData(MPPT_ZERO) == 1) { // If the data is not available, then skip sending it out on the main CAN bus!
@@ -459,7 +459,7 @@ static void GeneralOperation(void) {
 				break;
 		}
 
-		mppt_data_dump_flag = FALSE;
+		mppt_data_dump_flag = false;
 	}
 
 
@@ -492,7 +492,7 @@ static void GeneralOperation(void) {
 	}
 
 	// Dump the thermistor values out on the main CAN bus.
-	if(thermistor_data_dump_flag == TRUE) {
+	if(thermistor_data_dump_flag == true) {
 		can_MAIN.address = AC_CAN_MAIN_BASE + AC_THERM_ONE;
 		can_MAIN.data.data_u32[0] = tempOne;
 		can_MAIN.data.data_u32[0] = tempTwo;
@@ -503,7 +503,7 @@ static void GeneralOperation(void) {
 		can_MAIN.data.data_u32[0] = refTemp;
 		can_transmit_MAIN();
 
-		thermistor_data_dump_flag = FALSE;
+		thermistor_data_dump_flag = false;
 	}
 }
 
@@ -518,9 +518,9 @@ static void GeneralOperation(void) {
  * 		 switch to CHARGING.
  */
 static void ChargeOnly(void) {
-	if(coulomb_count_flag == TRUE) {
+	if(coulomb_count_flag == true) {
 		CoulombCount();
-		coulomb_count_flag = FALSE;
+		coulomb_count_flag = false;
 	}
 }
 
@@ -654,23 +654,23 @@ static void ToggleMPPT(unsigned int mppt, FunctionalState state) {
  */
 static int GetMPPTData(unsigned int mppt) {
 	// Prevent the AC from spamming the MPPTs.
-	if(mppt_rtr_flag == FALSE) {
+	if(mppt_rtr_flag == false) {
 		can_MPPT.address = AC_CAN_BASE1 + mppt;
 		can_sendRTR(); //Send RTR request
-		mppt_rtr_flag = TRUE;
+		mppt_rtr_flag = true;
 	}
 
 	// Wait until the response is sent from the MPPT, and then read it.
 	if((P1IN & CAN_INTn0) == 0x00) {
 		can_receive_MPPT();
-		mppt_rtr_flag = FALSE;
+		mppt_rtr_flag = false;
 		switch(can_MPPT.status) {
 			case CAN_OK:
 			case CAN_RTR:
-				ToggleError(FALSE);
+				ToggleError(false);
 				return 1;
 			case CAN_ERROR:
-				ToggleError(TRUE);
+				ToggleError(true);
 			default:
 				return 0;
 		}
@@ -905,9 +905,9 @@ void AC2PC_Interpret(void) {
 
 	switch((*getPC_ptr) - '0') { // Hackish way to tell MCU that *getPC_ptr is a number.
 		case PROMPT_EXIT:
-			Prompt_Active = FALSE;
+			Prompt_Active = false;
 			sprintf(tx_PC_buffer, "Exiting prompt.\r\n");
-			put_status_PC = TRUE;
+			put_status_PC = true;
 			break;
 		case PROMPT_BATT_DUMP:
 			sprintf(tx_PC_buffer, "%d,%d,%d", batteryV[MPPT_ZERO], batteryV[MPPT_ONE], batteryV[MPPT_TWO]);
@@ -958,12 +958,12 @@ __interrupt void USCI_A0_ISR(void)
     case 2:                                   // Data Received - UCRXIFG
     	ch = UCA0RXBUF;
 
-    	if (ch == 0x0D && Prompt_Active == FALSE) { // Activate prompt.
-    		Prompt_Active = TRUE;
+    	if (ch == 0x0D && Prompt_Active == false) { // Activate prompt.
+    		Prompt_Active = true;
     		putPC_ptr = &RS232Active[0];
     		UCA0TXBUF = *putPC_ptr++;
     		UCA0IE |= UCTXIE;
-    	} else if (Prompt_Active == TRUE && put_status_PC == FALSE) { // Prevent too many commands coming in at once.
+    	} else if (Prompt_Active == true && put_status_PC == false) { // Prevent too many commands coming in at once.
     		getPC_ptr = &ch;
     		AC2PC_Interpret(); // Interpret command.
     	} else {
@@ -975,7 +975,7 @@ __interrupt void USCI_A0_ISR(void)
 
     	if (ch == '\0') {
     		UCA0IE &= ~UCTXIE;
-    		put_status_PC = FALSE;
+    		put_status_PC = false;
     	} else {
     		UCA0TXBUF = ch;
     	}
@@ -1087,14 +1087,14 @@ __interrupt void P2_ISR(void)
 #pragma vector = TIMER0_A0_VECTOR
  __interrupt void TIMERA_ISR(void)
 {
-	 coulomb_count_flag = TRUE;
+	 coulomb_count_flag = true;
 	 timA_cnt++;
 	 if(timA_cnt == TIMA_ONE_SEC + 1) { // If timA_cnt is equal to 513, roll over.
 		 timA_cnt = 1;
-		 coulomb_data_dump_flag = TRUE;
-		 thermistor_data_dump_flag = TRUE;
+		 coulomb_data_dump_flag = true;
+		 thermistor_data_dump_flag = true;
 
-		 if(error_blink_flag == TRUE) {
+		 if(error_blink_flag == true) {
 			 P1OUT ^= ~LED1; // Blink the LED.
 		 } else {
 			 P1OUT |= LED1; // Disable the LED.
@@ -1108,7 +1108,7 @@ __interrupt void P2_ISR(void)
 	 }
 
 	 if(timA_total_cnt % 2 == 0) { // If two seconds have passed, dump MPPT data.
-		 mppt_data_dump_flag = TRUE;
+		 mppt_data_dump_flag = true;
 	 }
 }
 

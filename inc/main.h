@@ -7,16 +7,10 @@
 #include<msp430x54xa.h>
 #include "limits.h"
 #include "stdio.h"
+#include "stdbool.h"
 #include "./can.h"
 #include "./adc.h"
 #include "./rs232.h"
-
-/**
-* @enum bool
-*
-* An enumeration defining a boolean (bool) type.
-*/
-typedef enum { TRUE, FALSE } bool;
 
 typedef enum { ON, OFF } FunctionalState;
 
