@@ -247,6 +247,10 @@ static void IdleController(void) {
 		error_flag = false;
 		mppt_rtr_data_flag = false;
 
+		/**
+		 * @note Dummy transmit to reset the DLC.
+		 */
+		can_transmit_MPPT();
 		ToggleMPPT(MPPT_ZERO, false);
 		//for(i = 0; i <= MPPT_ZERO; i++) { ToggleMPPT(i, false); }
 
