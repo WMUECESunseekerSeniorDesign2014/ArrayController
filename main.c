@@ -51,6 +51,9 @@ volatile bool mppt_data_dump_flag = false;
 volatile bool thermistor_data_dump_flag = false;
 volatile bool error_blink_flag = false;
 volatile bool mppt_rtr_flag = false;
+bool mppt_rtr_request_flag = false;
+bool mppt_rtr_data_flag = false;
+bool mppt_safety_flag = false;
 
 char mppt_status = 0x01; // Bits 0-2 indicate if the MPPT is enabled or disabled.
 char mppt_control = 0x0F; // Bits 0-2 indicate if we are intelligently controlling the MPPTs.
@@ -210,92 +213,43 @@ static void IdleController(void) {
 	bool error_flag = false;
 
 	P4OUT &= ~(LED5); // 0 0 0 1
-	if((mppt_status & 0x01) > 0) {
-		// Loop and get data from MPPT.
-		for(i = 0; i <= MPPT_ZERO; i++) {
-			// If the previous call to GetMPPTData() resulted in an error, roll back i.
-			if(status == 0) {
-				i = (i <= 1) ? 0 : (i - 1);
-				ToggleError(true);
-			} else if (status == 1) { // If the RTR was successful, store the data.
-				// Change the data from mV to V for simple comparisons.
-				arrV[i] = can_MPPT.data.data_u16[0] / MPPT_AV_SCALE;
-				battV[i] = can_MPPT.data.data_u16[2] / MPPT_BV_SCALE;
 
-				arrayV[i] = can_MPPT.data.data_u16[0];
-				arrayI[i] = can_MPPT.data.data_u16[1];
-				batteryV[i] = can_MPPT.data.data_u16[2];
-				arrayT[i] = can_MPPT.data.data_u16[3];
-
-				ToggleError(false);
-			}
-
-			status = GetMPPTData(i);
-		}
+	if(!mppt_rtr_data_flag) {
+		mppt_rtr_request_flag = true;
+	} else {
+		mppt_rtr_request_flag = false;
 	}
 
-	if((mppt_status & 0x01) > 0) {
-		//Delay(DELAY_HALFSEC); // Give the MPPTs time to initialize themselves.
-		for(i = 0; i <= MPPT_ZERO; i++) { ToggleMPPT(i, OFF); } // Disable MPPTs.
+	// Get the data from the MPPTs.
+	if(mppt_rtr_flag) {
+		GetMPPTData(MPPT_ZERO);
+		mppt_rtr_flag = false;
 	}
 
-	dc_504_flag = true;
+	if(mppt_rtr_data_flag) {
+		arrV[i] = can_MPPT.data.data_u16[0] / MPPT_AV_SCALE;
+		battV[i] = can_MPPT.data.data_u16[2] / MPPT_BV_SCALE;
 
-	/** @note Removed safety checks as they're not usable in the system testing apparatus. */
+		arrayV[i] = can_MPPT.data.data_u16[0];
+		arrayI[i] = can_MPPT.data.data_u16[1];
+		batteryV[i] = can_MPPT.data.data_u16[2];
+		arrayT[i] = can_MPPT.data.data_u16[3];
+		mppt_rtr_request_flag = false;
+		mppt_safety_flag = true;
+	}
 
-	// Broke this into multiple if statements for readability. This verifies that the
-	// voltages the MPPTs read from the batteries are different and they're not within
-	// the maximum voltage range. If the inner most if statement is reached, then the
-	// array is not connected to the rest of the car!
-/*	if(battV[MPPT_ZERO] == battV[MPPT_ONE]) {
-		if(battV[MPPT_ONE] == battV[MPPT_TWO]) {
-			if((battV[MPPT_ZERO] >= BATT_MAX_LOWER_V) && (battV[MPPT_ZERO] <= BATT_MAX_UPPER_V)) {
-				// Dump data via RS-232 and CAN every second.
-				if(coulomb_data_dump_flag == true) {
-					AC2PC_puts("ARRAY UNCONNECTED\r\n");
-					sprintf(buffer, "%d,%d,%d\r\n", battV[MPPT_ZERO], battV[MPPT_ONE], battV[MPPT_TWO]);
-					AC2PC_puts(buffer);
+	/** @todo Add the safety checks back here. */
 
-					can_MAIN.address = AC_CAN_MAIN_BASE + AC_ARR_CABLE;
-					can_MAIN.data.data_u16[0] = batteryV[MPPT_ZERO];
-					can_MAIN.data.data_u16[1] = batteryV[MPPT_ONE];
-					can_MAIN.data.data_u16[2] = batteryV[MPPT_TWO];
-					can_MAIN.data.data_u16[3] = 0; // No use for this yet.
-					can_transmit_MAIN();
+	if(mppt_safety_flag) {
+		error_flag = false;
+		mppt_rtr_data_flag = false;
 
-					error_flag = true;
-					coulomb_data_dump_flag = false;
-				}
-			}
-		}
-	}*/
+		for(i = 0; i <= MPPT_ZERO; i++) { ToggleMPPT(i, OFF); }
 
-	// Poll CAN interrupt to see if we have received the 504 message.
-//	if((P4IN & (CAN_INTn1)) == 0x00) {
-//		can_receive_MAIN();
-//
-//		if(can_MAIN.status == CAN_OK) {
-//			switch(can_MAIN.address) {
-//			/** @todo Figure out where to find the enable bit here. */
-//				case DC_CAN_BASE + DC_SWITCH:
-//					dc_504_flag = true;
-//					break;
-//				default:
-//					// Do nothing because we don't know what the message is.
-//					break;
-//			}
-//		} else if(can_MAIN.status == CAN_RTR) {
-//			can_MAIN.address = AC_CAN_MAIN_BASE + AC_IDLE_RTR; // Send out battery stats since we're still idling
-//												 	 	 	   // and no coulomb count has occurred.
-//			can_MAIN.data.data_u16[0] = batteryV[MPPT_ZERO];
-//			can_MAIN.data.data_u16[1] = 0;
-//			can_MAIN.data.data_u16[2] = 0;
-//			can_MAIN.data.data_u16[3] = 0; // No use for this yet.
-//			can_transmit_MAIN();
-//		} else {
-//			error_flag = true;
-//		}
-//	}
+		mppt_status &= 0x00;
+
+		dc_504_flag = true; /** @note We need to move this out when we check 504 message. */
+	}
 
 	// dc_504_flag should get set in the Main CAN controller interrupt.
 	if(error_flag == false && dc_504_flag == true) {
@@ -574,20 +528,16 @@ static void ToggleMPPT(unsigned int mppt, FunctionalState state) {
  * Get a data dump from the MPPTs.
  */
 static int GetMPPTData(unsigned int mppt) {
-	// Prevent the AC from spamming the MPPTs.
-	if(mppt_rtr_flag == false) {
-		can_MPPT.address = AC_CAN_BASE1 + mppt;
-		can_sendRTR(); //Send RTR request
-		mppt_rtr_flag = true;
-	}
+	can_MPPT.address = AC_CAN_BASE1 + mppt;
+	can_sendRTR(); //Send RTR request
 
-	// Wait until the response is sent from the MPPT, and then read it.
+	// If a response is received from the MPPT, read it.
 	if((P1IN & CAN_INTn0) == 0x00) {
 		can_receive_MPPT();
-		mppt_rtr_flag = false;
 		switch(can_MPPT.status) {
 			case CAN_OK:
 			case CAN_RTR:
+				mppt_rtr_data_flag = true;
 				ToggleError(false);
 				return 1;
 			case CAN_ERROR:
@@ -1014,6 +964,10 @@ __interrupt void P2_ISR(void)
 		 timA_cnt = 1;
 		 coulomb_data_dump_flag = true;
 		 thermistor_data_dump_flag = true;
+
+		 if(mppt_rtr_request_flag) {
+			 mppt_rtr_flag = true;
+		 }
 
 		 if(error_blink_flag == true) {
 			 P1OUT ^= ~LED1; // Blink the LED.
