@@ -339,19 +339,7 @@ static void IdleController(void) {
  *  * Poll the thermistors and, if needed, send an emergency CAN message.
  */
 static void GeneralOperation(void) {
-	signed int battPercentage = 0;
-
-	// TIMA has gone off.
-	if(coulomb_count_flag == TRUE) {
-		CoulombCount();
-		coulomb_count_flag = FALSE;
-	}
-
-	// One second has passed.
-	if(coulomb_data_dump_flag == TRUE) {
-		ReportCoulombCount();
-		coulomb_data_dump_flag = FALSE;
-	}
+	unsigned int battPercentage = 0;
 
 	// Enable/disable MPPTs based on driver switch status.
 	// The first MPPT.
@@ -379,28 +367,40 @@ static void GeneralOperation(void) {
 		mppt_control &= 0xFB;
 	}
 
-	// Calculate the percentage of deliverable power left in the batteries. powerAvg is divided by 3600
-	// to convert it from watt-seconds to watt-hours.
-	battPercentage = ((BATT_MAX_WATTH - (powerAvg / 3600)) / BATT_MAX_WATTH) * 100; // Convert to a percentage.
-
-	// Enable/disable the MPPTs based on the percentage that was calculated AND if the driver is allowing
-	// us to control the MPPTs.
-	if(battPercentage <= BATT_HIGH_LOWER && (mppt_control & 0x01) > 0) {
-		ToggleMPPT(MPPT_ZERO, ON);
-	} else if(battPercentage >= BATT_HIGH_UPPER) {
-		ToggleMPPT(MPPT_ZERO, OFF);
+	// TIMA has gone off.
+	if(coulomb_count_flag == TRUE) {
+		CoulombCount();
+		coulomb_count_flag = FALSE;
 	}
 
-	if(battPercentage <= BATT_MEDI && (mppt_control & 0x02) > 0) {
-		ToggleMPPT(MPPT_ONE, ON);
-	} else {
-		ToggleMPPT(MPPT_ONE, OFF);
-	}
+	// One second has passed.
+	if(coulomb_data_dump_flag == TRUE) {
+		ReportCoulombCount();
+		coulomb_data_dump_flag = FALSE;
 
-	if(battPercentage <= BATT_LOW && (mppt_control & 0x04) > 0) {
-		ToggleMPPT(MPPT_TWO, ON);
-	} else {
-		ToggleMPPT(MPPT_TWO, OFF);
+		// Calculate the percentage of deliverable power left in the batteries. powerAvg is divided by 3600
+		// to convert it from watt-seconds to watt-hours.
+		battPercentage = ((BATT_MAX_WATTH - (powerAvg / 3600)) / BATT_MAX_WATTH) * 100; // Convert to a percentage.
+
+		// Enable/disable the MPPTs based on the percentage that was calculated AND if the driver is allowing
+		// us to control the MPPTs.
+		if(battPercentage <= BATT_HIGH_LOWER && (mppt_control & 0x01) > 0) {
+			ToggleMPPT(MPPT_ZERO, ON);
+		} else if(battPercentage >= BATT_HIGH_UPPER) {
+			ToggleMPPT(MPPT_ZERO, OFF);
+		}
+
+		if(battPercentage <= BATT_MEDI && (mppt_control & 0x02) > 0) {
+			ToggleMPPT(MPPT_ONE, ON);
+		} else {
+			ToggleMPPT(MPPT_ONE, OFF);
+		}
+
+		if(battPercentage <= BATT_LOW && (mppt_control & 0x04) > 0) {
+			ToggleMPPT(MPPT_TWO, ON);
+		} else {
+			ToggleMPPT(MPPT_TWO, OFF);
+		}
 	}
 
 	// Dump MPPT data out on the main CAN bus.
