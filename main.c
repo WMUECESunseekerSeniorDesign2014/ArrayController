@@ -286,8 +286,7 @@ static void IdleController(void) {
 	}
 
 	// Poll CAN interrupt to see if we have received the 504 message.
-	/** @todo Check CAN_INTn1 instead of RX. */
-	if((P4IN & (CAN_RX1n2 | CAN_RX2n2)) == 0x00) {
+	if((P4IN & (CAN_INTn1)) == 0x00) {
 		can_receive_MAIN();
 
 		if(can_MAIN.status == CAN_OK) {
