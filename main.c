@@ -275,6 +275,7 @@ static void IdleController(void) {
  */
 static void GeneralOperation(void) {
 	unsigned int battPercentage = 0;
+	mppt_rtr_request_flag = true;
 
 	// Checks to see if a RTR request was received and responds appropriately.
 	RTRRespond();
@@ -325,25 +326,41 @@ static void GeneralOperation(void) {
 		}
 	}
 
-	// Dump MPPT data out on the main CAN bus.
-	if(mppt_data_dump_flag == true) {
+	if(mppt_rtr_flag) {
 		switch(canMpptState) {
 			case MPPT0:
-				if(GetMPPTData(MPPT_ZERO) == 1) { // If the data is not available, then skip sending it out on the main CAN bus!
-					arrayV[MPPT_ZERO] = can_MPPT.data.data_u16[0];
-					arrayI[MPPT_ZERO] = can_MPPT.data.data_u16[1];
-					batteryV[MPPT_ZERO] = can_MPPT.data.data_u16[2];
-					arrayT[MPPT_ZERO] = can_MPPT.data.data_u16[3];
+				GetMPPTData(MPPT_ZERO);
+				break;
+		}
 
-					can_MAIN.address = AC_CAN_MAIN_BASE + AC_MPPT_ZERO;
-					can_MAIN.data.data_u16[0] = arrayV[MPPT_ZERO];
-					can_MAIN.data.data_u16[1] = arrayI[MPPT_ZERO];
-					can_MAIN.data.data_u16[2] = batteryV[MPPT_ZERO];
-					can_MAIN.data.data_u16[3] = arrayT[MPPT_ZERO];
-					can_transmit_MAIN();
+		mppt_rtr_flag = false;
+	}
 
-					canMpptState = MPPT0;
-				}
+	if(mppt_rtr_data_flag) {
+		mppt_rtr_request_flag = false;
+		mppt_rtr_data_flag = false;
+		switch(canMpptState) {
+			case MPPT0:
+				arrayV[MPPT_ZERO] = can_MPPT.data.data_u16[0];
+				arrayI[MPPT_ZERO] = can_MPPT.data.data_u16[1];
+				batteryV[MPPT_ZERO] = can_MPPT.data.data_u16[2];
+				arrayT[MPPT_ZERO] = can_MPPT.data.data_u16[3];
+				break;
+		}
+	}
+
+	// Dump MPPT data out on the main CAN bus.
+	if(mppt_data_dump_flag) {
+		switch(canMpptState) {
+			case MPPT0:
+				can_MAIN.address = AC_CAN_MAIN_BASE + AC_MPPT_ZERO;
+				can_MAIN.data.data_u16[0] = arrayV[MPPT_ZERO];
+				can_MAIN.data.data_u16[1] = arrayI[MPPT_ZERO];
+				can_MAIN.data.data_u16[2] = batteryV[MPPT_ZERO];
+				can_MAIN.data.data_u16[3] = arrayT[MPPT_ZERO];
+				can_transmit_MAIN();
+				mppt_rtr_request_flag = true;
+				canMpptState = MPPT0; /** @todo Change this to move to the next MPPT in the main file. */
 				break;
 		}
 
