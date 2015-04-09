@@ -321,7 +321,7 @@ static void IdleController(void) {
 		timA_cnt = 0;
 		timA_total_cnt = 0;
 		battVoltage = battV[0]; // All battery voltages should be about the same.
-		P4OUT |= (LED5); // Turn off the LED.
+		P4OUT &= ~(LED3 | LED4 | LED5); // 0 1 1 1
 	}
 
 	ToggleError(error_flag);
@@ -1098,6 +1098,10 @@ __interrupt void P2_ISR(void)
 			 P1OUT ^= ~LED1; // Blink the LED.
 		 } else {
 			 P1OUT |= LED1; // Disable the LED.
+		 }
+
+		 if(carState == RUNNING) {
+			 P4OUT ^= (LED3 | LED4 | LED5);
 		 }
 
 		 ++timA_total_cnt;
