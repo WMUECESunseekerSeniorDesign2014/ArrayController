@@ -464,7 +464,6 @@ static void GeneralOperation(void) {
 
 
 	// Staggered conversions of ADC values.
-	/** @todo Add a flag to make sure that the CAN bus isn't sending thermistor values before we have the values read. */
 	switch(adcState) {
 		case AIN0:
 			tempOne = ConvertADCVal(adcState);
