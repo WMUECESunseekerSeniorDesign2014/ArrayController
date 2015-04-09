@@ -12,7 +12,7 @@
 #include "./adc.h"
 #include "./rs232.h"
 
-typedef enum { ON, OFF } FunctionalState;
+//typedef enum { OFF, ON } FunctionalState;
 
 /**
  * @enum MainState
