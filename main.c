@@ -242,7 +242,7 @@ static void IdleController(void) {
 		// Dump data via RS-232 and CAN every second.
 		if(coulomb_data_dump_flag == TRUE) {
 			AC2PC_puts("BLOWN FUSE\r\n");
-			sprintf(buffer, "0: %d V, 1: %d V, 2: %d V\r\n", battV[MPPT_ZERO], battV[MPPT_ONE], battV[MPPT_TWO]);
+			sprintf(buffer, "%d,%d,%d\r\n", battV[MPPT_ZERO], battV[MPPT_ONE], battV[MPPT_TWO]);
 			AC2PC_puts(buffer);
 
 			can_MAIN.address = AC_CAN_MAIN_BASE + AC_BLOWN_FUSE;
@@ -267,7 +267,7 @@ static void IdleController(void) {
 				// Dump data via RS-232 and CAN every second.
 				if(coulomb_data_dump_flag == TRUE) {
 					AC2PC_puts("ARRAY UNCONNECTED\r\n");
-					sprintf(buffer, "0: %d V, 1: %d V, 2: %d V\r\n", battV[MPPT_ZERO], battV[MPPT_ONE], battV[MPPT_TWO]);
+					sprintf(buffer, "%d,%d,%d\r\n", battV[MPPT_ZERO], battV[MPPT_ONE], battV[MPPT_TWO]);
 					AC2PC_puts(buffer);
 
 					can_MAIN.address = AC_CAN_MAIN_BASE + AC_ARR_CABLE;
