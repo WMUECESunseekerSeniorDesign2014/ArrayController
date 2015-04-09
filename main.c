@@ -13,6 +13,7 @@ static int GetMPPTData(unsigned int mppt);
 static void ToggleError(bool toggle);
 static void CoulombCount(void);
 static void ReportCoulombCount(void);
+static void RTRRespond(void);
 /**@}*/
 
 CarState carState = INIT; // The state that the car is in.
@@ -337,6 +338,9 @@ static void IdleController(void) {
 static void GeneralOperation(void) {
 	unsigned int battPercentage = 0;
 
+	// Checks to see if a RTR request was received and responds appropriately.
+	RTRRespond();
+
 	// Enable/disable MPPTs based on driver switch status.
 	// The first MPPT.
 	if((dr_switch_flag & 0x08) > 0) { // Switch is on.
@@ -518,6 +522,77 @@ static void ChargeOnly(void) {
 		CoulombCount();
 		coulomb_count_flag = FALSE;
 	}
+}
+
+/**
+ * Send out a CAN message in response to a RTR request.
+ */
+static void RTRRespond(void) {
+	float sendCurrent, sendCurrentAvg, sendPower;
+
+	if(can_MAIN.status != CAN_RTR) {
+		return;
+	}
+
+	// Convert the stored values from the ADC into voltages then use that to get currents.
+	sendCurrent = (((shuntReading * ADC_REF) / ADC_RESO) / SHUNT_OHM);
+	sendCurrentAvg = (((intShunt * ADC_REF) / ADC_RESO) / SHUNT_OHM);
+
+	sendPower = battVoltage * sendCurrent;
+	powerAvg = battVoltage * sendCurrentAvg;
+
+	switch(can_MAIN.address) {
+		case AC_CAN_MAIN_BASE + AC_MPPT_STATUS:
+			can_MAIN.data.data_u8[0] = mppt_status;
+			break;
+		case AC_CAN_MAIN_BASE + AC_CURRENT:
+			can_MAIN.address = AC_CAN_MAIN_BASE + AC_CURRENT;
+			can_MAIN.data.data_u32[0] = sendCurrent;
+			can_MAIN.data.data_u32[1] = sendCurrentAvg;
+			can_transmit_MAIN();
+			break;
+		case AC_CAN_MAIN_BASE + AC_POWER:
+			can_MAIN.address = AC_CAN_MAIN_BASE + AC_POWER;
+			can_MAIN.data.data_u32[0] = sendPower;
+			can_MAIN.data.data_u32[1] = powerAvg;
+			break;
+		case AC_CAN_MAIN_BASE + AC_MPPT_ZERO:
+			can_MAIN.address = AC_CAN_MAIN_BASE + AC_MPPT_ZERO;
+			can_MAIN.data.data_u16[0] = arrayV[MPPT_ZERO];
+			can_MAIN.data.data_u16[1] = arrayI[MPPT_ZERO];
+			can_MAIN.data.data_u16[2] = batteryV[MPPT_ZERO];
+			can_MAIN.data.data_u16[3] = arrayT[MPPT_ZERO];
+			break;
+		case AC_CAN_MAIN_BASE + AC_MPPT_ONE:
+			can_MAIN.address = AC_CAN_MAIN_BASE + AC_MPPT_ONE;
+			can_MAIN.data.data_u16[0] = arrayV[MPPT_ONE];
+			can_MAIN.data.data_u16[1] = arrayI[MPPT_ONE];
+			can_MAIN.data.data_u16[2] = batteryV[MPPT_ONE];
+			can_MAIN.data.data_u16[3] = arrayT[MPPT_ONE];
+			break;
+		case AC_CAN_MAIN_BASE + AC_MPPT_TWO:
+			can_MAIN.address = AC_CAN_MAIN_BASE + AC_MPPT_TWO;
+			can_MAIN.data.data_u16[0] = arrayV[MPPT_TWO];
+			can_MAIN.data.data_u16[1] = arrayI[MPPT_TWO];
+			can_MAIN.data.data_u16[2] = batteryV[MPPT_TWO];
+			can_MAIN.data.data_u16[3] = arrayT[MPPT_TWO];
+			break;
+		case AC_CAN_MAIN_BASE + AC_THERM_ONE:
+			can_MAIN.address = AC_CAN_MAIN_BASE + AC_THERM_ONE;
+			can_MAIN.data.data_u32[0] = tempOne;
+			can_MAIN.data.data_u32[0] = tempTwo;
+			break;
+		case AC_CAN_MAIN_BASE + AC_THERM_TWO:
+			can_MAIN.address = AC_CAN_MAIN_BASE + AC_THERM_TWO;
+			can_MAIN.data.data_u32[0] = tempThree;
+			can_MAIN.data.data_u32[0] = refTemp;
+			break;
+		default:
+			// There's no definition for the message that was requested.
+			break;
+	}
+
+	can_transmit_MAIN();
 }
 
 /**
