@@ -54,6 +54,8 @@ volatile bool mppt_rtr_flag = false;
 bool mppt_rtr_request_flag = false;
 bool mppt_rtr_data_flag = false;
 bool mppt_safety_flag = false;
+bool mppt_toggle_flag = false;
+bool mppt_toggle_activate_flag = false;
 
 char mppt_status = 0x01; // Bits 0-2 indicate if the MPPT is enabled or disabled.
 char mppt_control = 0x0F; // Bits 0-2 indicate if we are intelligently controlling the MPPTs.
@@ -228,13 +230,13 @@ static void IdleController(void) {
 	}
 
 	if(mppt_rtr_data_flag) {
-		arrV[i] = can_MPPT.data.data_u16[0] / MPPT_AV_SCALE;
-		battV[i] = can_MPPT.data.data_u16[2] / MPPT_BV_SCALE;
+		arrV[MPPT_ZERO] = can_MPPT.data.data_u16[0] / MPPT_AV_SCALE;
+		battV[MPPT_ZERO] = can_MPPT.data.data_u16[2] / MPPT_BV_SCALE;
 
-		arrayV[i] = can_MPPT.data.data_u16[0];
-		arrayI[i] = can_MPPT.data.data_u16[1];
-		batteryV[i] = can_MPPT.data.data_u16[2];
-		arrayT[i] = can_MPPT.data.data_u16[3];
+		arrayV[MPPT_ZERO] = can_MPPT.data.data_u16[0];
+		arrayI[MPPT_ZERO] = can_MPPT.data.data_u16[1];
+		batteryV[MPPT_ZERO] = can_MPPT.data.data_u16[2];
+		arrayT[MPPT_ZERO] = can_MPPT.data.data_u16[3];
 		mppt_rtr_request_flag = false;
 		mppt_safety_flag = true;
 	}
@@ -245,7 +247,8 @@ static void IdleController(void) {
 		error_flag = false;
 		mppt_rtr_data_flag = false;
 
-		for(i = 0; i <= MPPT_ZERO; i++) { ToggleMPPT(i, false); }
+		ToggleMPPT(MPPT_ZERO, false);
+		//for(i = 0; i <= MPPT_ZERO; i++) { ToggleMPPT(i, false); }
 
 		mppt_status &= 0x00;
 
@@ -283,10 +286,10 @@ static void GeneralOperation(void) {
 
 	// Enable/disable MPPTs based on driver switch status.
 	// The first MPPT.
-	if((dr_switch_flag & 0x01) > 0) { // Switch is on.
+	if(((dr_switch_flag & 0x08) > 0) && (mppt_status & 0x01) == 0) { // Switch is on.
 		mppt_control |= ~(0xFE);
 		ToggleMPPT(MPPT_ZERO, true);
-	} else {
+	} else if(((dr_switch_flag & 0x08) == 0) && (mppt_status & 0x01) > 0) {
 		// The driver has ultimate control over turning off the MPPT.
 		ToggleMPPT(MPPT_ZERO, false);
 		mppt_control &= 0xFE;
@@ -494,11 +497,15 @@ static void RTRRespond(void) {
 static void ToggleMPPT(unsigned int mppt, bool state) {
 	can_MPPT.address = AC_CAN_BASE2 + mppt;
 
-	if(state) {
-		can_MPPT.data.data_u16[0] = 0x0001;
-	} else {
-		can_MPPT.data.data_u16[0] = 0x0000;
+	switch(state) {
+		case false:
+			can_MPPT.data.data_u16[0] = 0x0000;
+			break;
+		case true:
+			can_MPPT.data.data_u16[0] = 0x0001;
+			break;
 	}
+
 
 	can_MPPT.data.data_u16[3] = 0x0000; // to base address 0x600
 	can_MPPT.data.data_u16[2] = 0x0000;
@@ -507,7 +514,7 @@ static void ToggleMPPT(unsigned int mppt, bool state) {
 
 	// Only transmit if needed to prevent hanging up the microcontroller with sending an
 	// unnecessary CAN message. This was broken into multiple IF statements for readability.
-	if(!state) { // The MPPT is false and we want to turn it on.
+	if(state) { // The MPPT is false and we want to turn it on.
 		if((mppt_status & 0x01) == 0) {
 			can_transmit_MPPT();
 		} else if((mppt_status & 0x02) == 0) {
@@ -979,6 +986,11 @@ __interrupt void P2_ISR(void)
 {
 	 coulomb_count_flag = true;
 	 timA_cnt++;
+
+	 if(timA_cnt == 256 && mppt_toggle_activate_flag) { // Half second.
+		 mppt_toggle_flag = true;
+	 }
+
 	 if(timA_cnt == TIMA_ONE_SEC + 1) { // If timA_cnt is equal to 513, roll over.
 		 timA_cnt = 1;
 		 coulomb_data_dump_flag = true;
