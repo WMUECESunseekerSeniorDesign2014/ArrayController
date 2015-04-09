@@ -404,11 +404,10 @@ static void GeneralOperation(void) {
 	}
 
 	// Dump MPPT data out on the main CAN bus.
-	/** Disassociate reading from MPPTs and reporting to main CAN. */
 	if(mppt_data_dump_flag == TRUE) {
 		switch(canMpptState) {
 			case MPPT0:
-				if(GetMPPTData(MPPT_ZERO) == 1) {
+				if(GetMPPTData(MPPT_ZERO) == 1) { // If the data is not available, then skip sending it out on the main CAN bus!
 					arrayV[MPPT_ZERO] = can_MPPT.data.data_u16[0];
 					arrayI[MPPT_ZERO] = can_MPPT.data.data_u16[1];
 					batteryV[MPPT_ZERO] = can_MPPT.data.data_u16[2];
