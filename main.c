@@ -787,7 +787,7 @@ void io_init( void )
 void timerA_init(void)
 {
  /*Set up Watch Crystal and TIMER A*/
- TA0CCR0 = 127; // Interrupt every 1/512 a second.
+ TA0CCR0 = 63; // Interrupt every 1/512 a second.
  /*The TACCRO initializes the value of Timer A to count up to before setting CCIFG flag
  (255 for 1/128 sec) (8191 1/4 sec) (16383 1/2 sec) (32767 1 sec)  tick time*/
  TA0CCTL0 = 0x0010;	/*Enables CCIFG to cause an interrupt*/
