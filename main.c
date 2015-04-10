@@ -54,8 +54,6 @@ volatile bool mppt_rtr_flag = false;
 bool mppt_rtr_request_flag = false;
 bool mppt_rtr_data_flag = false;
 bool mppt_safety_flag = false;
-bool mppt_toggle_flag = false;
-bool mppt_toggle_activate_flag = false;
 
 char mppt_status = 0x01; // Bits 0-2 indicate if the MPPT is enabled or disabled.
 char mppt_control = 0x07; // Bits 0-2 indicate if we are intelligently controlling the MPPTs.
@@ -992,10 +990,6 @@ __interrupt void P2_ISR(void)
 {
 	 coulomb_count_flag = true;
 	 timA_cnt++;
-
-	 if(timA_cnt == 256 && mppt_toggle_activate_flag) { // Half second.
-		 mppt_toggle_flag = true;
-	 }
 
 	 if(timA_cnt == TIMA_ONE_SEC + 1) { // If timA_cnt is equal to 513, roll over.
 		 timA_cnt = 1;
