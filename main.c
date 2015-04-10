@@ -65,8 +65,8 @@ volatile unsigned long timA_total_cnt = 0;
 signed long tempOne, tempTwo, tempThree, refTemp, adcRef, internal12V;
 
 signed long shuntReading = 0;
+signed long avgShunt = 0;
 signed long intShunt = 0;
-signed long intShuntSum = 0;
 float powerAvg = 0;
 
 unsigned int battVoltage = 0;
@@ -417,7 +417,7 @@ static void RTRRespond(void) {
 
 	// Convert the stored values from the ADC into voltages then use that to get currents.
 	sendCurrent = (((shuntReading * ADC_REF) / ADC_RESO) / SHUNT_OHM);
-	sendCurrentAvg = (((intShunt * ADC_REF) / ADC_RESO) / SHUNT_OHM);
+	sendCurrentAvg = (((avgShunt * ADC_REF) / ADC_RESO) / SHUNT_OHM);
 
 	sendPower = battVoltage * sendCurrent;
 	powerAvg = battVoltage * sendCurrentAvg;
@@ -558,8 +558,8 @@ static int GetMPPTData(unsigned int mppt) {
 void CoulombCount(void) {
 	measure = adc_in((char)SHUNT);
 	shuntReading = measure - adc_in((char)SHUNT_BIAS);
-	intShunt += (intShunt - shuntReading) >> C_CNT_SHIFT; // This is the IIR filter of (4).
-	intShuntSum += intShunt; // This is (5).
+	avgShunt = avgShunt - (avgShunt - shuntReading) >> C_CNT_SHIFT; // This is the IIR filter of (4).
+	intShunt += shuntReading; // This is (5).
 }
 
 /**
@@ -570,7 +570,7 @@ void ReportCoulombCount(void) {
 
 	// Convert the stored values from the ADC into voltages then use that to get currents.
 	sendCurrent = (((shuntReading * ADC_REF) / ADC_RESO) / SHUNT_OHM);
-	sendCurrentAvg = (((intShunt * ADC_REF) / ADC_RESO) / SHUNT_OHM);
+	sendCurrentAvg = (((avgShunt * ADC_REF) / ADC_RESO) / SHUNT_OHM);
 
 	sendPower = battVoltage * sendCurrent;
 	powerAvg = battVoltage * sendCurrentAvg;
@@ -783,7 +783,7 @@ void AC2PC_Interpret(void) {
 			sprintf(tx_PC_buffer, "%d,%d,%d\r\n", batteryV[MPPT_ZERO], batteryV[MPPT_ONE], batteryV[MPPT_TWO]);
 			break;
 		case PROMPT_SHUNT_DUMP:
-			sprintf(tx_PC_buffer, "%d,%d,%d,%f\r\n", shuntReading, intShunt, intShuntSum, powerAvg);
+			sprintf(tx_PC_buffer, "%d,%d,%d,%f\r\n", shuntReading, avgShunt, intShunt, powerAvg);
 			break;
 		case PROMPT_MPPT_DUMP:
 			sprintf(tx_PC_buffer, "%d,%d,%d,%d,%d,%d\r\n", arrayV[MPPT_ZERO], arrayV[MPPT_ONE], arrayV[MPPT_TWO],
