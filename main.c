@@ -520,7 +520,7 @@ static void ToggleMPPT(unsigned int mppt, bool state) {
 
 	// Only transmit if needed to prevent hanging up the microcontroller with sending an
 	// unnecessary CAN message. This was broken into multiple IF statements for readability.
-	if(state) { // The MPPT is false and we want to turn it on.
+	if(state) { // We want to turn the MPPT on.
 		if((mppt_status & 0x01) == 0) {
 			can_transmit_MPPT();
 		} else if((mppt_status & 0x02) == 0) {
@@ -528,7 +528,7 @@ static void ToggleMPPT(unsigned int mppt, bool state) {
 		} else if((mppt_status & 0x04) == 0) {
 			can_transmit_MPPT();
 		}
-	} else { // The MPPT is true and we want to turn it off.
+	} else { // We want to turn the MPPT off.
 		if((mppt_status & 0x01) > 0) {
 			can_transmit_MPPT();
 		} else if((mppt_status & 0x02) > 0) {
