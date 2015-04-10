@@ -611,6 +611,7 @@ void ReportCoulombCount(void) {
 	/** @todo What else can I put in this message? */
 	can_MAIN.address = AC_CAN_MAIN_BASE + AC_MPPT_STATUS;
 	can_MAIN.data.data_u8[0] = mppt_status;
+	can_MAIN.data.data_u8[1] = mppt_control;
 	can_transmit_MAIN();
 
 	// Transmit currents.
