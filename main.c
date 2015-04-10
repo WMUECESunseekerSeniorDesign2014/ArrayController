@@ -291,8 +291,7 @@ static void GeneralOperation(void) {
 	// Enable/disable MPPTs based on driver switch status.
 	// The first MPPT.
 	if(((dr_switch_flag & 0x01) > 0) && (mppt_status & 0x01) == 0) { // Switch is on.
-		mppt_control |= ~(0xFE);
-		ToggleMPPT(MPPT_ZERO, true);
+		mppt_control |= 0x01;
 	} else if(((dr_switch_flag & 0x01) == 0) && (mppt_status & 0x01) > 0) {
 		// The driver has ultimate control over turning off the MPPT.
 		ToggleMPPT(MPPT_ZERO, false);
