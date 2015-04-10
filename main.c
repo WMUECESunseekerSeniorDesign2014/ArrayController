@@ -178,7 +178,6 @@ static void InitController(void) {
 	put_status_PC = false;
 	Prompt_Active = false;
 	AC2PC_init();
-	UCA0IE |= UCRXIE; // Enable interrupts on the RX line.
 	P4OUT &= ~(LED3 | LED4); // 0 1 1 0
 	P4OUT |= (LED5);
 
@@ -271,6 +270,7 @@ static void IdleController(void) {
 		battVoltage = battV[0]; // All battery voltages should be about the same.
 		P4OUT &= ~(LED3 | LED4 | LED5); // 0 1 1 1
 		mppt_rtr_request_flag = true;
+		UCA0IE |= UCRXIE; // Enable interrupts on the RX line.
 	}
 
 	ToggleError(error_flag);
@@ -328,6 +328,7 @@ static void GeneralOperation(void) {
 				break;
 		}
 
+		can_transmit_MPPT();
 		mppt_data_dump_flag = false;
 	}
 
@@ -845,23 +846,23 @@ void AC2PC_Interpret(void) {
 			put_status_PC = true;
 			break;
 		case PROMPT_BATT_DUMP:
-			sprintf(tx_PC_buffer, "%d,%d,%d", batteryV[MPPT_ZERO], batteryV[MPPT_ONE], batteryV[MPPT_TWO]);
+			sprintf(tx_PC_buffer, "%d,%d,%d\r\n", batteryV[MPPT_ZERO], batteryV[MPPT_ONE], batteryV[MPPT_TWO]);
 			break;
 		case PROMPT_SHUNT_DUMP:
 			sprintf(tx_PC_buffer, "%d,%d,%d,%f\r\n", shuntReading, intShunt, intShuntSum, powerAvg);
 			break;
 		case PROMPT_MPPT_DUMP:
-			sprintf(tx_PC_buffer, "%d,%d,%d,%d,%d,%d", arrayV[MPPT_ZERO], arrayV[MPPT_ONE], arrayV[MPPT_TWO],
+			sprintf(tx_PC_buffer, "%d,%d,%d,%d,%d,%d\r\n", arrayV[MPPT_ZERO], arrayV[MPPT_ONE], arrayV[MPPT_TWO],
 					arrayI[MPPT_ZERO], arrayI[MPPT_ONE], arrayI[MPPT_TWO]);
 			break;
 		case PROMPT_THERM_DUMP:
-			sprintf(tx_PC_buffer, "%lX,%lX,%lX,%lX\r\n", tempOne, tempTwo, tempThree, refTemp);
+			sprintf(tx_PC_buffer, "%d,%d,%d,%d\r\n", tempOne, tempTwo, tempThree, refTemp);
 			break;
 		case PROMPT_MPPT_STATUS_DUMP:
-			sprintf(tx_PC_buffer, "%X\r\n", mppt_status);
+			sprintf(tx_PC_buffer, "%d\r\n", mppt_status);
 			break;
 		case PROMPT_SELF_CHECK:
-			sprintf(tx_PC_buffer, "%lX,%lX", internal12V, adcRef);
+			sprintf(tx_PC_buffer, "%d,%d\r\n", internal12V, adcRef);
 			break;
 		default:
 			// Do nothing.
@@ -892,6 +893,8 @@ __interrupt void USCI_A0_ISR(void)
     	break;
     case 2:                                   // Data Received - UCRXIFG
     	ch = UCA0RXBUF;
+
+    	asm("nop");
 
     	if (ch == 0x0D && Prompt_Active == false) { // Activate prompt.
     		Prompt_Active = true;
