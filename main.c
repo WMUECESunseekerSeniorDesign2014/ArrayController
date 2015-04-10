@@ -58,7 +58,7 @@ bool mppt_toggle_flag = false;
 bool mppt_toggle_activate_flag = false;
 
 char mppt_status = 0x01; // Bits 0-2 indicate if the MPPT is enabled or disabled.
-char mppt_control = 0x0F; // Bits 0-2 indicate if we are intelligently controlling the MPPTs.
+char mppt_control = 0x07; // Bits 0-2 indicate if we are intelligently controlling the MPPTs.
 
 // Every time timA_cnt hits 512, timA_total_cnt needs to be incremented.
 volatile short timA_cnt = 0;
