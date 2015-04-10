@@ -71,6 +71,8 @@ float powerAvg = 0;
 
 unsigned int battVoltage = 0;
 
+signed long measure = 0;
+
 int i;
 
 /*
@@ -298,19 +300,50 @@ static void GeneralOperation(void) {
 		mppt_control &= 0xFE;
 	}
 
-//	// TIMA has gone off.
-//	if(coulomb_count_flag == true) {
-//		CoulombCount();
-//		coulomb_count_flag = false;
-//	}
-//
-//	// One second has passed.
-//	if(coulomb_data_dump_flag == true) {
-//		ReportCoulombCount();
-//		coulomb_data_dump_flag = false;
-//
-//		// Calculate the percentage of deliverable power left in the batteries. powerAvg is divided by 3600
-//		// to convert it from watt-seconds to watt-hours.
+	if(mppt_rtr_flag) {
+		GetMPPTData(MPPT_ZERO);
+		mppt_rtr_flag = false;
+	}
+
+	if(mppt_rtr_data_flag) {
+		mppt_rtr_request_flag = false;
+		arrayV[MPPT_ZERO] = can_MPPT.data.data_u16[0];
+		arrayI[MPPT_ZERO] = can_MPPT.data.data_u16[1];
+		batteryV[MPPT_ZERO] = can_MPPT.data.data_u16[2];
+		arrayT[MPPT_ZERO] = can_MPPT.data.data_u16[3];
+		mppt_rtr_request_flag = true;
+	}
+
+	if(mppt_data_dump_flag) {
+		switch(canMpptState) {
+			case MPPT0:
+				can_MAIN.address = AC_CAN_MAIN_BASE + AC_MPPT_ZERO;
+				can_MAIN.data.data_u16[0] = arrayV[MPPT_ZERO];
+				can_MAIN.data.data_u16[1] = arrayI[MPPT_ZERO];
+				can_MAIN.data.data_u16[2] = batteryV[MPPT_ZERO];
+				can_MAIN.data.data_u16[3] = arrayT[MPPT_ZERO];
+				can_transmit_MAIN();
+				mppt_rtr_request_flag = true;
+				canMpptState = MPPT0; /** @todo Change this to move to the next MPPT in the main file. */
+				break;
+		}
+
+		mppt_data_dump_flag = false;
+	}
+
+	// TIMA has gone off.
+	if(coulomb_count_flag == true) {
+		CoulombCount();
+		coulomb_count_flag = false;
+	}
+
+	// One second has passed.
+	if(coulomb_data_dump_flag == true) {
+		ReportCoulombCount();
+		coulomb_data_dump_flag = false;
+
+		// Calculate the percentage of deliverable power left in the batteries. powerAvg is divided by 3600
+		// to convert it from watt-seconds to watt-hours.
 //		battPercentage = ((BATT_MAX_WATTH - (powerAvg / 3600)) / BATT_MAX_WATTH) * 100; // Convert to a percentage.
 //
 //		// Enable/disable the MPPTs based on the percentage that was calculated AND if the driver is allowing
@@ -332,7 +365,7 @@ static void GeneralOperation(void) {
 //		} else {
 //			ToggleMPPT(MPPT_TWO, false);
 //		}
-//	}
+	}
 //
 //	if(mppt_rtr_flag) {
 //		switch(canMpptState) {
@@ -376,48 +409,48 @@ static void GeneralOperation(void) {
 //	}
 //
 //
-//	// Staggered conversions of ADC values.
-//	switch(adcState) {
-//		case AIN0:
-//			tempOne = adc_in((char)adcState);
-//			adcState = AIN1;
-//			break;
-//		case AIN1:
-//			tempTwo = adc_in((char)adcState);
-//			adcState = AIN2;
-//			break;
-//		case AIN2:
-//			tempThree = adc_in((char)adcState);
-//			adcState = AIN3;
-//			break;
-//		case AIN3:
-//			refTemp = adc_in((char)adcState);
-//			adcState = REF;
-//			break;
-//		case REF:
-//			adcRef = adc_in((char)adcState);
-//			adcState = INT12V;
-//			break;
-//		case INT12V:
-//			internal12V = adc_in((char)adcState);
-//			adcState = AIN0;
-//			break;
-//	}
-//
-//	// Dump the thermistor values out on the main CAN bus.
-//	if(thermistor_data_dump_flag == true) {
-//		can_MAIN.address = AC_CAN_MAIN_BASE + AC_THERM_ONE;
-//		can_MAIN.data.data_u32[0] = tempOne;
-//		can_MAIN.data.data_u32[0] = tempTwo;
-//		can_transmit_MAIN();
-//
-//		can_MAIN.address = AC_CAN_MAIN_BASE + AC_THERM_TWO;
-//		can_MAIN.data.data_u32[0] = tempThree;
-//		can_MAIN.data.data_u32[0] = refTemp;
-//		can_transmit_MAIN();
-//
-//		thermistor_data_dump_flag = false;
-//	}
+	// Staggered conversions of ADC values.
+	switch(adcState) {
+		case AIN0:
+			tempOne = adc_in((char)adcState);
+			adcState = AIN1;
+			break;
+		case AIN1:
+			tempTwo = adc_in((char)adcState);
+			adcState = AIN2;
+			break;
+		case AIN2:
+			tempThree = adc_in((char)adcState);
+			adcState = AIN3;
+			break;
+		case AIN3:
+			refTemp = adc_in((char)adcState);
+			adcState = REF;
+			break;
+		case REF:
+			adcRef = adc_in((char)adcState);
+			adcState = INT12V;
+			break;
+		case INT12V:
+			internal12V = adc_in((char)adcState);
+			adcState = AIN0;
+			break;
+	}
+
+	// Dump the thermistor values out on the main CAN bus.
+	if(thermistor_data_dump_flag == true) {
+		can_MAIN.address = AC_CAN_MAIN_BASE + AC_THERM_ONE;
+		can_MAIN.data.data_u32[0] = tempOne;
+		can_MAIN.data.data_u32[0] = tempTwo;
+		can_transmit_MAIN();
+
+		can_MAIN.address = AC_CAN_MAIN_BASE + AC_THERM_TWO;
+		can_MAIN.data.data_u32[0] = tempThree;
+		can_MAIN.data.data_u32[0] = refTemp;
+		can_transmit_MAIN();
+
+		thermistor_data_dump_flag = false;
+	}
 }
 
 /**
@@ -588,7 +621,8 @@ static int GetMPPTData(unsigned int mppt) {
  *  5. Stores the raw sum in another variable.
  */
 void CoulombCount(void) {
-	shuntReading = adc_in((char)SHUNT) - adc_in((char)SHUNT_BIAS);
+	measure = adc_in((char)SHUNT);
+	shuntReading = measure - adc_in((char)SHUNT_BIAS);
 	intShunt += (intShunt - shuntReading) >> C_CNT_SHIFT; // This is the IIR filter of (4).
 	intShuntSum += intShunt; // This is (5).
 }
