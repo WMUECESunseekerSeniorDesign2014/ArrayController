@@ -1,6 +1,6 @@
 Debug/
 targetConfigs/
-lnk_msp430f5438a.cmd
+#lnk_msp430f5438a.cmd
 .metadata/
 .launches/
 .settings/
