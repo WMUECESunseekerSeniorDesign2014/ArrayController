@@ -216,6 +216,8 @@ static void IdleController(void) {
 
 	P4OUT &= ~(LED5); // 0 0 0 1
 
+	mppt_rtr_flag = true;
+
 	if(!mppt_rtr_data_flag) {
 		mppt_rtr_request_flag = true;
 	} else {
@@ -224,9 +226,11 @@ static void IdleController(void) {
 
 	// Get the data from the MPPTs.
 	if(mppt_rtr_flag) {
-		GetMPPTData(MPPT_ZERO);
+		//GetMPPTData(MPPT_ZERO);
 		mppt_rtr_flag = false;
 	}
+
+	mppt_rtr_data_flag = true;
 
 	if(mppt_rtr_data_flag) {
 		arrV[MPPT_ZERO] = can_MPPT.data.data_u16[0] / MPPT_AV_SCALE;
@@ -288,21 +292,23 @@ static void GeneralOperation(void) {
 	unsigned int battPercentage = 0;
 
 	// Checks to see if a RTR request was received and responds appropriately.
-	RTRRespond();
+	//RTRRespond();
 
 	// Enable/disable MPPTs based on driver switch status.
 	// The first MPPT.
 	if(((dr_switch_flag & 0x01) > 0) && (mppt_status & 0x01) == 0) { // Switch is on.
+		can_transmit_MPPT();
 		ToggleMPPT(MPPT_ZERO, true);
 		mppt_control |= 0x01;
 	} else if(((dr_switch_flag & 0x01) == 0) && (mppt_status & 0x01) > 0) {
 		// The driver has ultimate control over turning off the MPPT.
+		can_transmit_MPPT();
 		ToggleMPPT(MPPT_ZERO, false);
 		mppt_control &= 0xFE;
 	}
 
 	if(mppt_rtr_flag) {
-		GetMPPTData(MPPT_ZERO);
+		//GetMPPTData(MPPT_ZERO);
 		mppt_rtr_flag = false;
 	}
 
@@ -323,13 +329,13 @@ static void GeneralOperation(void) {
 				can_MAIN.data.data_u16[1] = arrayI[MPPT_ZERO];
 				can_MAIN.data.data_u16[2] = batteryV[MPPT_ZERO];
 				can_MAIN.data.data_u16[3] = arrayT[MPPT_ZERO];
-				can_transmit_MAIN();
+				//can_transmit_MAIN();
 				mppt_rtr_request_flag = true;
 				canMpptState = MPPT0; /** @todo Change this to move to the next MPPT in the main file. */
 				break;
 		}
 
-		can_transmit_MPPT();
+		//can_transmit_MPPT();
 		mppt_data_dump_flag = false;
 	}
 
@@ -341,7 +347,7 @@ static void GeneralOperation(void) {
 
 	// One second has passed.
 	if(coulomb_data_dump_flag == true) {
-		ReportCoulombCount();
+		//ReportCoulombCount();
 		coulomb_data_dump_flag = false;
 	}
 
@@ -378,12 +384,12 @@ static void GeneralOperation(void) {
 		can_MAIN.address = AC_CAN_MAIN_BASE + AC_THERM_ONE;
 		can_MAIN.data.data_u32[0] = tempOne;
 		can_MAIN.data.data_u32[0] = tempTwo;
-		can_transmit_MAIN();
+		//can_transmit_MAIN();
 
 		can_MAIN.address = AC_CAN_MAIN_BASE + AC_THERM_TWO;
 		can_MAIN.data.data_u32[0] = tempThree;
 		can_MAIN.data.data_u32[0] = refTemp;
-		can_transmit_MAIN();
+		//can_transmit_MAIN();
 
 		thermistor_data_dump_flag = false;
 	}
