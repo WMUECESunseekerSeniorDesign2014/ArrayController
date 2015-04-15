@@ -391,74 +391,88 @@ void can_flag_check_MPPT( void )
 
 int can_sendRTR( void )
 {
-        static unsigned int buf_addr[3] = {0xFFFF, 0xFFFF, 0xFFFF};
+        //static unsigned int buf_addr[3] = {0xFFFF, 0xFFFF, 0xFFFF};
 
         //Change Data Length Code Register - use can_write instead?
         //can_mod( TXB0DLC, 0x40, 0x40 );                // Modify bit 6 for RTR sends 0x40 sets the RTR bit and 0 specifies to transmit 0 bytes
         //can_mod( TXB1DLC, 0x40, 0x40 );                // Modify bit 6 for RTR sends 0x40 sets the RTR bit and 0 specifies to transmit 0 bytes
         //can_mod( TXB2DLC, 0x40, 0x40 );                // Modify bit 6 for RTR sends 0x40 sets the RTR bit and 0 specifies to transmit 0 bytes
 
-        // Check if the incoming address has already been configured in a mailbox
-        if( can_MPPT.address == buf_addr[0] ){
-                // Mailbox 0 setup matches our new message
-                // Write to TX Buffer 0, start at data registers, and initiate transmission
-                can_mod( TXB0DLC, 0x40, 0x40 );
-                can_write_tx( 0x01, &buffer[5] );
-                can_rts( 0 );
-                can_mod( TXB0DLC, 0x40, 0x00 );
-        }
-        else if( can_MPPT.address == buf_addr[1] ){
-                // Mailbox 1 setup matches our new message
-                // Write to TX Buffer 1, start at data registers, and initiate transmission
-                can_mod( TXB1DLC, 0x40, 0x40 );
-                can_write_tx( 0x03, &buffer[5] );
-                can_rts( 1 );
-                can_mod( TXB1DLC, 0x40, 0x00 );
-        }
-        else if( can_MPPT.address == buf_addr[2] ){
-                // Mailbox 2 setup matches our new message
-                // Write to TX Buffer 2, start at data registers, and initiate transmission
-                can_mod( TXB2DLC, 0x40, 0x40 );
-                can_write_tx( 0x05, &buffer[5] );
-                can_rts( 2 );
-                can_mod( TXB2DLC, 0x40, 0x00 );
-        }
-        else{
-                // No matches in existing mailboxes
-                // No mailboxes already configured, so we'll need to load an address - set it up
-                buffer[0] = (unsigned char)(can_MPPT.address >> 3);
-                buffer[1] = (unsigned char)(can_MPPT.address << 5);
-                buffer[2] = 0x00;                                                // EID8
-                buffer[3] = 0x00;                                                // EID0
-                buffer[4] = 0x00;                                                // DLC = 0 bytes
+        buffer[0] = (unsigned char)(can_MPPT.address >> 3);
+        buffer[1] = (unsigned char)(can_MPPT.address << 5);
+        buffer[2] = 0x00;                                                // EID8
+        buffer[3] = 0x00;                                                // EID0
+        buffer[4] = 0x00;                                                // DLC = 0 bytes
+    	buffer[ 5] = 0x00;
+    	buffer[ 6] = 0x00;
+    	buffer[ 7] = 0x00;
+    	buffer[ 8] = 0x00;
+    	buffer[ 9] = 0x00;
+    	buffer[10] = 0x00;
+    	buffer[11] = 0x00;
+    	buffer[12] = 0x00;
 
-                // Check if we've got any un-setup mailboxes free and use them
-                // Otherwise, find a non-busy mailbox and set it up with our new address
-                if( buf_addr[0] == 0xFFFF ){                        // Mailbox 0 is free
-                        // Write to TX Buffer 0, start at address registers, and initiate transmission
-                        can_mod( TXB0DLC, 0x40, 0x40 );
-                        can_write_tx( 0x00, &buffer[0] );
-                        can_rts( 0 );
-                        buf_addr[0] = can_MPPT.address;
-                        can_mod( TXB0DLC, 0x40, 0x00 );
-                }
-                else if( buf_addr[1] == 0xFFFF ){                // Mailbox 1 is free
-                        // Write to TX Buffer 1, start at address registers, and initiate transmission
-                        can_mod( TXB1DLC, 0x40, 0x40 );
-                        can_write_tx( 0x02, &buffer[0] );
-                        can_rts( 1 );
-                        buf_addr[1] = can_MPPT.address;
-                        can_mod( TXB1DLC, 0x40, 0x00 );
-                }
-                else if( buf_addr[2] == 0xFFFF ){                // Mailbox 2 is free
-                        // Write to TX Buffer 2, start at address registers, and initiate transmission
-                        can_mod( TXB2DLC, 0x40, 0x40 );
-                        can_write_tx( 0x04, &buffer[0] );
-                        can_rts( 2 );
-                        buf_addr[2] = can_MPPT.address;
-                        can_mod( TXB2DLC, 0x40, 0x00 );
-                }
-                else {
+//        // Check if the incoming address has already been configured in a mailbox
+//        if( can_MPPT.address == buf_addr[0] ){
+//                // Mailbox 0 setup matches our new message
+//                // Write to TX Buffer 0, start at data registers, and initiate transmission
+//                can_mod( TXB0DLC, 0x40, 0x40 );
+//                can_write_tx( 0x01, &buffer[5] );
+//                can_rts( 0 );
+//                can_mod( TXB0DLC, 0x40, 0x00 );
+//        }
+//        else if( can_MPPT.address == buf_addr[1] ){
+//                // Mailbox 1 setup matches our new message
+//                // Write to TX Buffer 1, start at data registers, and initiate transmission
+//                can_mod( TXB1DLC, 0x40, 0x40 );
+//                can_write_tx( 0x03, &buffer[5] );
+//                can_rts( 1 );
+//                can_mod( TXB1DLC, 0x40, 0x00 );
+//        }
+//        else if( can_MPPT.address == buf_addr[2] ){
+//                // Mailbox 2 setup matches our new message
+//                // Write to TX Buffer 2, start at data registers, and initiate transmission
+//                can_mod( TXB2DLC, 0x40, 0x40 );
+//                can_write_tx( 0x05, &buffer[5] );
+//                can_rts( 2 );
+//                can_mod( TXB2DLC, 0x40, 0x00 );
+//        }
+//        else{
+//                // No matches in existing mailboxes
+//                // No mailboxes already configured, so we'll need to load an address - set it up
+//                buffer[0] = (unsigned char)(can_MPPT.address >> 3);
+//                buffer[1] = (unsigned char)(can_MPPT.address << 5);
+//                buffer[2] = 0x00;                                                // EID8
+//                buffer[3] = 0x00;                                                // EID0
+//                buffer[4] = 0x00;                                                // DLC = 0 bytes
+//
+//                // Check if we've got any un-setup mailboxes free and use them
+//                // Otherwise, find a non-busy mailbox and set it up with our new address
+//                if( buf_addr[0] == 0xFFFF ){                        // Mailbox 0 is free
+//                        // Write to TX Buffer 0, start at address registers, and initiate transmission
+//                        can_mod( TXB0DLC, 0x40, 0x40 );
+//                        can_write_tx( 0x00, &buffer[0] );
+//                        can_rts( 0 );
+//                        buf_addr[0] = can_MPPT.address;
+//                        can_mod( TXB0DLC, 0x40, 0x00 );
+//                }
+//                else if( buf_addr[1] == 0xFFFF ){                // Mailbox 1 is free
+//                        // Write to TX Buffer 1, start at address registers, and initiate transmission
+//                        can_mod( TXB1DLC, 0x40, 0x40 );
+//                        can_write_tx( 0x02, &buffer[0] );
+//                        can_rts( 1 );
+//                        buf_addr[1] = can_MPPT.address;
+//                        can_mod( TXB1DLC, 0x40, 0x00 );
+//                }
+//                else if( buf_addr[2] == 0xFFFF ){                // Mailbox 2 is free
+//                        // Write to TX Buffer 2, start at address registers, and initiate transmission
+//                        can_mod( TXB2DLC, 0x40, 0x40 );
+//                        can_write_tx( 0x04, &buffer[0] );
+//                        can_rts( 2 );
+//                        buf_addr[2] = can_MPPT.address;
+//                        can_mod( TXB2DLC, 0x40, 0x00 );
+//                }
+//                else {
 
                         // No mailboxes free, wait until at least one is not busy
                         while(( can_read_status() & 0x54 ) == 0x54);
@@ -468,7 +482,7 @@ int can_sendRTR( void )
                                 can_mod( TXB0DLC, 0x40, 0x40 );
                                 can_write_tx( 0x00, &buffer[0] );
                                 can_rts( 0 );
-                                buf_addr[0] = can_MPPT.address;
+                                //buf_addr[0] = can_MPPT.address;
                                 can_mod( TXB0DLC, 0x40, 0x00 );
                         }
                         // Is it mailbox 1?
@@ -477,7 +491,7 @@ int can_sendRTR( void )
                                 can_mod( TXB1DLC, 0x40, 0x40 );
                                 can_write_tx( 0x02, &buffer[0] );
                                 can_rts( 1 );
-                                buf_addr[1] = can_MPPT.address;
+                                //buf_addr[1] = can_MPPT.address;
                                 can_mod( TXB1DLC, 0x40, 0x00 );
                         }
                         // Is it mailbox 2?
@@ -486,21 +500,11 @@ int can_sendRTR( void )
                                 can_mod( TXB2DLC, 0x40, 0x40 );
                                 can_write_tx( 0x04, &buffer[0] );
                                 can_rts( 2 );
-                                buf_addr[2] = can_MPPT.address;
+                                //buf_addr[2] = can_MPPT.address;
                                 can_mod( TXB2DLC, 0x40, 0x00 );
                         }
-                }
-        }
-
-        buffer[0] = (unsigned char)(can_MPPT.address >> 3);
-        buffer[1] = (unsigned char)(can_MPPT.address << 5);
-        buffer[2] = 0x00;                                                // EID8
-        buffer[3] = 0x00;                                                // EID0
-        buffer[4] = 0x08;                                                // DLC = 8 bytes
-
-        can_write_tx( 0x00, &buffer[0] );
-        can_write_tx( 0x02, &buffer[0] );
-        can_write_tx( 0x04, &buffer[0] );
+                //}
+        //}
 
         // Switch back Data Length Code Register to send normal Data frames
         //can_mod( TXB0DLC, 0x40, 0x00 );                // Modify the RTR bit back to 0
