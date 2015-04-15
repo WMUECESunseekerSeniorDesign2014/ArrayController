@@ -308,7 +308,7 @@ static void GeneralOperation(void) {
 	}
 
 	if(mppt_rtr_flag) {
-		//GetMPPTData(MPPT_ZERO);
+		GetMPPTData(MPPT_ZERO);
 		mppt_rtr_flag = false;
 	}
 
