@@ -292,7 +292,7 @@ static void GeneralOperation(void) {
 	unsigned int battPercentage = 0;
 
 	// Checks to see if a RTR request was received and responds appropriately.
-	//RTRRespond();
+	RTRRespond();
 
 	// Enable/disable MPPTs based on driver switch status.
 	// The first MPPT.
@@ -329,13 +329,12 @@ static void GeneralOperation(void) {
 				can_MAIN.data.data_u16[1] = arrayI[MPPT_ZERO];
 				can_MAIN.data.data_u16[2] = batteryV[MPPT_ZERO];
 				can_MAIN.data.data_u16[3] = arrayT[MPPT_ZERO];
-				//can_transmit_MAIN();
+				can_transmit_MAIN();
 				mppt_rtr_request_flag = true;
 				canMpptState = MPPT0; /** @todo Change this to move to the next MPPT in the main file. */
 				break;
 		}
 
-		//can_transmit_MPPT();
 		mppt_data_dump_flag = false;
 	}
 
@@ -347,7 +346,7 @@ static void GeneralOperation(void) {
 
 	// One second has passed.
 	if(coulomb_data_dump_flag == true) {
-		//ReportCoulombCount();
+		ReportCoulombCount();
 		coulomb_data_dump_flag = false;
 	}
 
@@ -384,12 +383,12 @@ static void GeneralOperation(void) {
 		can_MAIN.address = AC_CAN_MAIN_BASE + AC_THERM_ONE;
 		can_MAIN.data.data_u32[0] = tempOne;
 		can_MAIN.data.data_u32[0] = tempTwo;
-		//can_transmit_MAIN();
+		can_transmit_MAIN();
 
 		can_MAIN.address = AC_CAN_MAIN_BASE + AC_THERM_TWO;
 		can_MAIN.data.data_u32[0] = tempThree;
 		can_MAIN.data.data_u32[0] = refTemp;
-		//can_transmit_MAIN();
+		can_transmit_MAIN();
 
 		thermistor_data_dump_flag = false;
 	}
