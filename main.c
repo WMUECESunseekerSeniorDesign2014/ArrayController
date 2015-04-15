@@ -293,6 +293,7 @@ static void GeneralOperation(void) {
 	// Enable/disable MPPTs based on driver switch status.
 	// The first MPPT.
 	if(((dr_switch_flag & 0x01) > 0) && (mppt_status & 0x01) == 0) { // Switch is on.
+		ToggleMPPT(MPPT_ZERO, true);
 		mppt_control |= 0x01;
 	} else if(((dr_switch_flag & 0x01) == 0) && (mppt_status & 0x01) > 0) {
 		// The driver has ultimate control over turning off the MPPT.
@@ -556,7 +557,7 @@ static int GetMPPTData(unsigned int mppt) {
  *  5. Stores the raw sum in another variable.
  */
 void CoulombCount(void) {
-	measure = adc_in((char)SHUNT);
+	measure = 1.4 * adc_in((char)SHUNT); // Scale up the voltage by 40% due to a hardware change.
 	shuntReading = measure - adc_in((char)SHUNT_BIAS);
 	avgShunt = avgShunt - (avgShunt - shuntReading) >> C_CNT_SHIFT; // This is the IIR filter of (4).
 	intShunt += shuntReading; // This is (5).
