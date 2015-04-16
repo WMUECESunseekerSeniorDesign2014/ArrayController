@@ -417,6 +417,10 @@ static void ChargeOnly(void) {
 static void RTRRespond(void) {
 	float sendCurrent, sendCurrentAvg, sendPower;
 
+	if((P1IN & CAN_INTn1) == 0x00) {
+		can_receive_MAIN();
+	}
+
 	if(can_MAIN.status != CAN_RTR) {
 		return;
 	}
