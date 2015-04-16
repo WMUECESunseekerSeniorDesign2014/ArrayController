@@ -92,8 +92,8 @@ void can_init_MAIN( void )
 	buffer[ 6] = 0x00;
 	buffer[ 7] = 0x00;
 	// RXF2 - Buffer 1
-	buffer[ 8] = 0x00;
-	buffer[ 9] = 0x00;
+	buffer[ 8] = (unsigned char)((AC_CAN_MAIN_BASE) >> 3);
+	buffer[ 9] = (unsigned char)((AC_CAN_MAIN_BASE) >> 3);
 	buffer[10] = 0x00;
 	buffer[11] = 0x00;
 	can_write_2( RXF0SIDH, &buffer[0], 12 );
@@ -121,7 +121,7 @@ void can_init_MAIN( void )
 	buffer[ 2] = 0x00;
 	buffer[ 3] = 0x00;
 	// RXM1 - Buffer 1
-	buffer[ 4] = 0xFC;						// Match upper 6 bits of ID - don't care about lower 5 bits (block address)
+	buffer[ 4] = 0xFE;						// Match upper 6 bits of ID - don't care about lower 5 bits (block address)
 	buffer[ 5] = 0x00;
 	buffer[ 6] = 0x00;
 	buffer[ 7] = 0x00;
