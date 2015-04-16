@@ -216,6 +216,8 @@ static void IdleController(void) {
 
 	P4OUT &= ~(LED5); // 0 0 0 1
 
+	//mppt_rtr_flag = true;
+
 	if(!mppt_rtr_data_flag) {
 		mppt_rtr_request_flag = true;
 	} else {
@@ -227,6 +229,8 @@ static void IdleController(void) {
 		GetMPPTData(MPPT_ZERO);
 		mppt_rtr_flag = false;
 	}
+
+	//mppt_rtr_data_flag = true;
 
 	if(mppt_rtr_data_flag) {
 		arrV[MPPT_ZERO] = can_MPPT.data.data_u16[0] / MPPT_AV_SCALE;
@@ -245,11 +249,6 @@ static void IdleController(void) {
 	if(mppt_safety_flag) {
 		error_flag = false;
 		mppt_rtr_data_flag = false;
-
-		/**
-		 * @note Dummy transmit to reset the DLC.
-		 */
-		can_transmit_MPPT();
 		ToggleMPPT(MPPT_ZERO, false);
 		//for(i = 0; i <= MPPT_ZERO; i++) { ToggleMPPT(i, false); }
 
@@ -329,7 +328,6 @@ static void GeneralOperation(void) {
 				break;
 		}
 
-		can_transmit_MPPT();
 		mppt_data_dump_flag = false;
 	}
 

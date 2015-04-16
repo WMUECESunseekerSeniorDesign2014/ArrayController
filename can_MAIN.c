@@ -93,7 +93,7 @@ void can_init_MAIN( void )
 	buffer[ 7] = 0x00;
 	// RXF2 - Buffer 1
 	buffer[ 8] = (unsigned char)((AC_CAN_MAIN_BASE) >> 3);
-	buffer[ 9] = (unsigned char)((AC_CAN_MAIN_BASE) >> 3);
+	buffer[ 9] = (unsigned char)((AC_CAN_MAIN_BASE) << 5);
 	buffer[10] = 0x00;
 	buffer[11] = 0x00;
 	can_write_2( RXF0SIDH, &buffer[0], 12 );
