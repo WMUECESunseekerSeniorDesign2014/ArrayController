@@ -249,11 +249,6 @@ static void IdleController(void) {
 	if(mppt_safety_flag) {
 		error_flag = false;
 		mppt_rtr_data_flag = false;
-
-		/**
-		 * @note Dummy transmit to reset the DLC.
-		 */
-		//can_transmit_MPPT();
 		ToggleMPPT(MPPT_ZERO, false);
 		//for(i = 0; i <= MPPT_ZERO; i++) { ToggleMPPT(i, false); }
 
@@ -297,12 +292,10 @@ static void GeneralOperation(void) {
 	// Enable/disable MPPTs based on driver switch status.
 	// The first MPPT.
 	if(((dr_switch_flag & 0x01) > 0) && (mppt_status & 0x01) == 0) { // Switch is on.
-		//can_transmit_MPPT();
 		ToggleMPPT(MPPT_ZERO, true);
 		mppt_control |= 0x01;
 	} else if(((dr_switch_flag & 0x01) == 0) && (mppt_status & 0x01) > 0) {
 		// The driver has ultimate control over turning off the MPPT.
-		//can_transmit_MPPT();
 		ToggleMPPT(MPPT_ZERO, false);
 		mppt_control &= 0xFE;
 	}
